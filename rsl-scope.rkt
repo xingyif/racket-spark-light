@@ -16,23 +16,4 @@ binds collect-filter-map-ds in (collect expr filter-map-ds)
 
 (λ (x acc) (+ x acc)) binds x, acc in (+ x acc)
 
-(DataShell 'result (reduce Expr (DataShell 'b (map Expr (DataShell-import 'a "data.csv")))))
-(DataShell 'result (reduce Expr (filter Expr (map Expr (DataShell-import 'a "data.csv")))))
-
-;; [Listof e] -> DataShell
-(mk-datashell l)
-
-;; f [Listof e] -> DataShell
-(ds-map func l)
-
-;; f [Listof e] -> DataShell
-(ds-flatmap func l)
-
-;; f [Listof e] -> DataShell
-(filter func l)
-
-;; (-> e e) e [Listof e] -> 
-(ds-reduce func acc l)
-
-
 |#
