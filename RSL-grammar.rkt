@@ -1,12 +1,40 @@
 #lang racket
+#|
 
-;; Transformation Type (T-Type)
-;; A T-Type is one:
-;;   "Map"
-;;   "Filter"
+-----------RSL Core Grammar-----------:
 
-;; A T-Func is (-> Any Any)
-;; A Transformation is: (Transformation T-Type T-Func)
+Program		=	Definition
+ 	 	|	...
+ 	 	|	DataShell
+ 	 	|	...
+ 	 	| 	Tranformation
+ 	 	|	...
+ 	 	| 	Action
 
-;; This is it
-;; A datashell is: (Datashell [Listof Transformation] [Listof Any] Datashell)
+
+Definition	= 	(define Id Expr)
+
+
+Expr		=	DataShell
+		=	Tranformation
+		=	Action
+		=	(λ (e) e)
+		=	(λ (e) w)
+		=	(λ (e loe) w)
+		=	All other Racket expressions
+
+
+DataShell	= 	(DataShell Id ref)
+
+
+Tranformation	= 	(map Expr DataShell)
+		= 	(filter Expr DataShell)
+		= 	(flatmap Expr DataShell)
+
+
+Action		= 	(reduce Expr DataShell)
+		= 	(collect DataShell)
+		= 	(count DataShell)
+
+
+|#
