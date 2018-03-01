@@ -3,9 +3,11 @@
 
 -----------RSL Core Grammar-----------:
 
-Program		=	Definition
+Program		=	Definition-Expr
  	 	|	...
 
+Definition-Expr =       Definition
+                |       Expr
 
 Definition	= 	(define Id Expr)
 
