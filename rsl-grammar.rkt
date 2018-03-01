@@ -7,10 +7,12 @@ Program		=	top-level
  	 	|	...
 
 Top-level       =       Definition
-                |       TExpr
-                |       Expr (from Racket)
+                |       Expr
 
-Definition	= 	(define Id TExpr)
+Definition	= 	(define Id Expr)
+
+Expr            =       Expr (from Racket)
+                =       TExpr
 
 TExpr		=       DataShell
 		=	Tranformation
