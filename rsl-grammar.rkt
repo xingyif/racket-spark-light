@@ -2,7 +2,7 @@
 #|
 -----------RSL Core Grammar-----------:
 
-Program		=	top-level
+Program		=	Top-level
  	 	|	...
 
 Top-level       =       Definition
@@ -10,8 +10,9 @@ Top-level       =       Definition
 
 Definition	= 	(define Id Expr)
 
-Expr            =       Expr (from Racket)
-                |       TExpr
+Expr            = 	Expr (from Racket)
+                |	TExpr
+		|	TFunc
 
 TExpr		=       DataShell
 		|	Tranformation
