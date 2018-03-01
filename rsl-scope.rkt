@@ -3,9 +3,21 @@
 
 -----------RSL Core Scope-----------:
 
-(define ds (DataShell)
-(define (g x) (+ (f (+ x 1)) (f (- x 1))))
+(define original-ds (DataShell-import 'a "data.csv")) binds original-ds in (DataShell-import 'a "data.csv")
 
+(define map-ds (map expr original-ds)) binds map-ds in (map expr original-ds)
+(define reduce-map-ds (reduce expr map-ds)) binds reduce-map-ds in (reduce expr map-ds)
+
+(define filter-map-ds (filter expr map-ds)) binds filter-map-ds in (filter expr map-ds)
+(define collect-filter-map-ds (collect expr filter-map-ds))
+binds collect-filter-map-ds in (collect expr filter-map-ds)
+
+(λ (x) e) binds x in e
+
+(λ (x acc) (+ x acc)) binds x, acc in (+ x acc)
+
+(DataShell 'result (reduce Expr (DataShell 'b (map Expr (DataShell-import 'a "data.csv")))))
+(DataShell 'result (reduce Expr (filter Expr (map Expr (DataShell-import 'a "data.csv")))))
 
 ;; [Listof e] -> DataShell
 (mk-datashell l)

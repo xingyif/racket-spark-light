@@ -2,7 +2,7 @@
 #|
 
 -----------RSL Core Grammar-----------:
-
+s
 Program		=	Definition
  	 	|	...
 
