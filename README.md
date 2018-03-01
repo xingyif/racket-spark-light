@@ -1,6 +1,6 @@
 # racket-spark-light (RSL)
 
-* What is the purpose of RSL?
+*What is the purpose of RSL?
 
 Our DSL is designed to transform and analyze very large data sets. It focuses on using the MapReduce model, specifically optimizing map transformations as part of the language. By preprocessing these transformations, we can avoid needlessly traversing the list for every single transformation. The language provides an intelligent way of traversing large datasets by evaluating and optimizing operations used on the datasets. 
 
