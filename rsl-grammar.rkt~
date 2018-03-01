@@ -5,6 +5,11 @@
 
 Program		=	Definition
  	 	|	...
+ 	 	|	DataShell
+ 	 	|	...
+ 	 	| 	Tranformation
+ 	 	|	...
+ 	 	| 	Action
 
 
 Definition	= 	(define Id Expr)
