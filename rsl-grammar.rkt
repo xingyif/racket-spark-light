@@ -3,20 +3,22 @@
 
 -----------RSL Core Grammar-----------:
 
-Program		=	Definition
+Program		=	top-level
  	 	|	...
 
+Top-level       =       Definition
+                |       TExpr
 
 Definition	= 	(define Id Expr)
 
 
-Expr		=	DataShell
+TExpr		=	DataShell
 		=	Tranformation
 		=	Action
 		=	(λ (e) e)
 		=	(λ (e) w)
 		=	(λ (e loe) w)
-		=	All other Racket expressions
+		=	All Racket expressions
 
 
 DataShell	= 	(DataShell-import Id ref)
