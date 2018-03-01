@@ -19,17 +19,29 @@ Expr		=	DataShell
 		=	All other Racket expressions
 
 
-DataShell	= 	(DataShell Id ref)
+DataShell	= 	(DataShell-import Id ref)
+		= 	(DataShell Id Tranformation)
+		= 	(DataShell Id Action)
 
 
 Tranformation	= 	(map Expr DataShell)
+		= 	(map Expr Tranformation)
 		= 	(filter Expr DataShell)
+		= 	(filter Expr Tranformation)
 		= 	(flatmap Expr DataShell)
+		= 	(flatmap Expr Tranformation)
 
 
 Action		= 	(reduce Expr DataShell)
+		= 	(reduce Expr Transformation)
 		= 	(collect DataShell)
+		= 	(collect Transformation)
 		= 	(count DataShell)
+		= 	(count Transformation)
+
+Examples:
+(DataShell 'result (reduce Expr (DataShell 'b (map Expr (DataShell-import 'a "data.csv")))))
+(DataShell 'result (reduce Expr (filter Expr (map Expr (DataShell-import 'a "data.csv")))))
 
 
 |#
