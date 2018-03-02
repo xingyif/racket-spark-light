@@ -23,7 +23,6 @@ TExpr		=       DataShell
                 |       TFunc
 
 TFunc		=	(λ (x) Expr)
-		|	(λ (x) Expr)
 
 AFunc		=	(λ (x1 x2) Expr)
 
