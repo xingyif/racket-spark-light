@@ -4,18 +4,26 @@
 
 -----------RSL Vocabulary/Keywords-----------:
 
-A DataShell is an immutable structure that stores user inputted lists of data, on which DSOperation are performed.
+
+-----DataShell-----:
+A DataShell is an immutable structure that stores user inputted lists of data,
+on which DSOperation are performed.
 The user is able to create a DataShell by:
  1. Importing existing Data into RSL via the data-importing interfaces
- 2. Applying a Transformation on an existing DataShell
+ 2. Creating a DataShell directly from a list
+ 3. Applying a Transformation on an existing DataShell
 
-The user is not able to apply any non-DSOperations on DataShell. Datashells cannot be mutated, all DSOperations return a
-new Datashell.
+The user is not able to apply any non-DSOperations on DataShell.
+Datashells cannot be mutated, all DSOperations return a new Datashell.
 
+
+-----DSOperation-----:
 An DSOperation is one of:
 - Transformation
 - Action
 
+
+-----Transformation-----:
 A Transformation creates a new DataShell from the existing DataShell.
 All Transformations are lazy, which means that they are not evaluated when the user calls them.
 Rather, RSL records a graph of transformations applied on the base DataShell (provided by the user).
@@ -33,6 +41,8 @@ RSL supported Tranformations include:
 - ds-flatmap(func):
      | Similar to map, but the input function can return one element or a collection of the elements.
 
+
+-----Action-----:
 An Action triggers the evaluations of the transformation(s) and returns a value to the user.
 Actions are Eager operations that are evaluated immediately.
 RSL supported Actions include:
@@ -45,10 +55,13 @@ If time permits:
 - ds-count():
     | Returns the total number of elements in the DataShell
 
+
+-----What user can/cannot do-----:
 The user is able to use any of the supported DSOperations on DataShells, however, the user is not allowed
 to determine whether an operation is a Transformation or an Action.
 
-In addition:
+
+-----In addition-----:
 The user has access to all Racket types and expressions.
 
 |#
