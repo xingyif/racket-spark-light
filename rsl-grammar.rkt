@@ -7,12 +7,14 @@ Program		=	Top-level
  	 	|	...
 
 Top-level       =       Definition
-
                 |       Expr
 
-Definition	= 	(define Id Expr)
+Definition	= 	(define x RExpr)
+                |       (save-ds x Datashell) ;; Datashell saved as id x
 
-Expr            = 	Expr (from Racket)
+RExpr           =       All expressions from Racket
+
+Expr            = 	RExpr
                 |	TExpr
 		|	TFunc
 
@@ -25,27 +27,32 @@ TFunc		=	(λ (x) Expr)
 
 AFunc		=	(λ (x1 x2) Expr)
 
-DataShell	= 	(DataShell-import Id ref)
-		| 	(DataShell x)
-		| 	(DataShell x Action)
+FilePath        =       String ;; string describes a system filepath
 
-Tranformation   =       (ds-map TExpr DataShell)
-		| 	(ds-map TFunc Tranformation)
+DataShell	= 	(mk-datashell [Listof Any]) ;; x is a new name for this datashell
+                |       (mk-datashell-csv FilePath) 
+                |       Transformation
+
+Tranformation   =       (ds-map TFunc DataShell)
 		| 	(ds-filter TFunc DataShell)
-		| 	(ds-filter TFunc Tranformation)
 		| 	(ds-flatmap TFunc DataShell)
-		| 	(ds-flatmap TFunc Tranformation)
 
-Action		= 	(ds-reduce AFunc DataShell)
-		| 	(ds-reduce AFunc Transformation)
+Action		= 	(ds-reduce  AFunc DataShell)
 		| 	(ds-collect DataShell)
-		| 	(ds-collect Transformation)
-		| 	(ds-count DataShell)
-		| 	(ds-count Transformation)
+		| 	(ds-count   DataShell)
 
 Examples:
-(DataShell 'result (reduce Expr (DataShell 'b (map Expr (DataShell-import 'a "data.csv")))))
-(DataShell 'result (reduce Expr (filter Expr (map Expr (DataShell-import 'a "data.csv")))))
 
+1. Import a spreadsheet, transform it, and count the number of items in it
+;; Define a datashell as identifier spreadsheet
+(save-ds spreadsheet (mk-datashell-csv "data.csv"))
+;; Count the number of items in spreadsheet
+(ds-count spreadsheet)
+
+2. Transform a list '(1 2 3) with various mapping and filters, then add all the items together
+(save-ds first-list (mk-datashell (list 1 2 3))
+;; ds-filters can be shifted
+(save-ds even-shifted (ds-map add1 (ds-filter even? (ds-map add1 first-list))))
+(define my-result (ds-reduce add-acc even-shifted))
 
 |#
