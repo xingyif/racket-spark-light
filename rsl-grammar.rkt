@@ -16,11 +16,11 @@ RExpr           =       All expressions from Racket
 
 Expr            = 	RExpr
                 |	TExpr
-		|	TFunc
 
 TExpr		=       DataShell
 		|	Tranformation
 		|	Action
+                |       TFunc
 
 TFunc		=	(λ (x) Expr)
 		|	(λ (x) Expr)
