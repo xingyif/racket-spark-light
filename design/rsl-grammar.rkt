@@ -13,6 +13,7 @@ Definition	= 	(define x RExpr)
                 |       (save-ds x Datashell) ;; Datashell saved as id x
 
 RExpr           =       All expressions from Racket
+                |       DSFunc   ;; DSFunc's are just signature restricted Racket lambdas
 
 Expr            = 	RExpr
                 |	TExpr
@@ -20,7 +21,10 @@ Expr            = 	RExpr
 TExpr		=       DataShell
 		|	Tranformation
 		|	Action
-                |       TFunc
+                |       DSFunc
+
+DSFunc          =       TFunc
+                =       AFunc
 
 TFunc		=	(λ (x) Expr)
 
