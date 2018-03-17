@@ -57,9 +57,9 @@
     #:datum-literals (tfunc)
     [(_ f ds)
      #:with exp (local-expand #'f (syntax-local-context) (kernel-form-identifier-list))
-     #:with tfunc (syntax-property #'exp 'rsl-func-type)
+     ;#:with tfunc (syntax-property #'exp 'rsl-func-type)
      ;; cons the new function to the old queue of functions
-     #'(Datashell (Datashell-dataset ds) (compose f (Datashell-op ds)))]))
+     #'(Datashell (Datashell-dataset ds) (compose1 f (Datashell-op ds)))]))
 
 ;; ds-reduce: (ds-reduce AFunc Expr Datashell)
 (define-syntax ds-reduce
