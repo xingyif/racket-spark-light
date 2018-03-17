@@ -32,7 +32,7 @@ AFunc		=	(λ (x1 x2) Expr)
 
 FilePath        =       String ;; string describes a system filepath
 
-DataShell	= 	(mk-datashell [Listof Any]) ;; x is a new name for this datashell
+DataShell	= 	(mk-datashell [Listof Any])
                 |       (mk-datashell-csv FilePath) 
                 |       Transformation
 
@@ -40,7 +40,7 @@ Tranformation   =       (ds-map TFunc DataShell)
 		| 	(ds-filter TFunc DataShell)
 		| 	(ds-flatmap TFunc DataShell)
 
-Action		= 	(ds-reduce  AFunc DataShell)
+Action		= 	(ds-reduce  AFunc Expr DataShell) ;; Expr is an accumulator
 		| 	(ds-collect DataShell)
 		| 	(ds-count   DataShell)
 

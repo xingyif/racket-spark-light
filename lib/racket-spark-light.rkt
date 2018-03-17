@@ -12,7 +12,7 @@
  ds-map
  ds-reduce
  mk-datashell
- collect-ds)
+ ds-collect)
 
 ;; ---------------------------------------------------------------------------------------------------
 ;; DEPENDENCY
@@ -49,10 +49,13 @@
      (syntax-property #'func 'rsl-func-type 'afunc)]
     ;; Regular lambda, not compatible with RSL
     [(_ e ...)
-     (displayln "case 3")
      #'(lambda e ...)]))
 
-
+; ds-map: TFunc Datashell -> Datashell
+; maps the given function on the Datashell and returns a new Datashell
+; Transformation: lazily evaluated. Compose the given function with the previous functions
+; but do not evaluated the given function
+; Example: (ds-map (lambda (x) (+ 1 x)) (mk-datashell '(1 2)) -> (Datashell '2 3) 
 (define-syntax ds-map
   (syntax-parser
     #:datum-literals (tfunc)
@@ -60,8 +63,12 @@
      #:with exp (local-expand #'f (syntax-local-context) (kernel-form-identifier-list))
      #:with tfunc (syntax-property #'exp 'rsl-func-type)
      ;; compose the new function to the previously composed functions
-     #'(Datashell (Datashell-dataset ds) (compose f (Datashell-ops ds)))]))
+     #'(Datashell (Datashell-dataset ds) (compose f (Datashell-op ds)))]))
 
+; ds-reduce: AFunc Expr Datashell -> Any
+; reduces the Datashell to a non Datashell type
+; Action: eagerly evaluated, triggers all transformations stored on the datashell and the actor
+; apply the final composed function on the given datashell and return the result
 (define-syntax ds-reduce
   (syntax-parser
     #:datum-literals (afunc)
@@ -70,8 +77,6 @@
      #:with afunc (syntax-property #'exp 'rsl-func-type)
      ;; perform the queued transformations, then run the reduction
      #'(foldl f base (ds))]))
-
-
 
 ;; -----------------------------------------------------------------------------
 ;; RUNTIME LIB
@@ -83,10 +88,11 @@
       (Datashell data-list (lambda (any) any))
       (error 'mk-datashell "First arg must be a list")))
 
-(define (collect-ds this)
-  ;; the thing we want to do when we use the DataSet as a function
-  ;; apply composed function to the list
-  (define mapped (map (Datashell-ops this) (Datashell-dataset this)))
+;; collect-ds: Datashell -> [Listof Any]
+(define (ds-collect ds)
+  ;; apply composed function to the stored list, then return the list
+  (define mapped (map (Datashell-op ds) (Datashell-dataset ds)))
   mapped)
 
-(struct Datashell (dataset ops) #:transparent #:property prop:procedure collect-ds)
+;; (Datashell [Listof Any] 
+(struct Datashell (dataset op) #:transparent #:property prop:procedure ds-collect)

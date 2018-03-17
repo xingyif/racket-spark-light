@@ -2,7 +2,3 @@
 ; ds-map: TFunc Datashell
 ; perform a map of the given function on the Datashell
 ; Example: (ds-map (lambda (x) (+ 1 x)) dshell)
-
-
-l = (list 1 2 3) -> 
-l.foldl(x, acc -> x + acc)
