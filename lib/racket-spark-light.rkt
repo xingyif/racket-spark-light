@@ -34,36 +34,29 @@
 ;; SYNTAX (compile time functions)
 
 ;; (rsl-lambda (arg ...) body body-more ...)
-;; rsl-lambda will create a racket lambda and attach a syntax property that
-;; can be used to determine if it is a tfunc or afunc suitable for RSL MapReduce.
+;; RSL lambda is currently regular lambda, may not be needed
 (define-syntax rsl-lambda
   (syntax-parser
-    ;; TFunc, add the syntax property to mark this function as a TFunc
-    [(_ (arg1:id) e1:expr e2:expr ...)
-     #:with func #'(lambda (arg1) e1 e2 ...)
-     #:with tagged (syntax-property #'func 'rsl-func-type 'tfunc)
-     #'tagged]
-    ;; AFunc, add the syntax property to mark this function as an AFunc
-    [(_ (arg1:id arg2:id) e1:expr e2:expr ...)
-     #:with func #'(lambda (arg1 arg2) e1 e2 ...)
-     (syntax-property #'func 'rsl-func-type 'afunc)]
     ;; Regular lambda, not compatible with RSL
     [(_ e ...)
      #'(lambda e ...)]))
 
-; ds-map: TFunc Datashell -> Datashell
+; ds-map: (ds-map TFunc Datashell)
 ; maps the given function on the Datashell and returns a new Datashell
 ; Transformation: lazily evaluated. Compose the given function with the previous functions
 ; but do not evaluated the given function
 ; Example: (ds-map (lambda (x) (+ 1 x)) (mk-datashell '(1 2)) -> (Datashell '2 3)
-(define-syntax ds-map
-  (syntax-parser
-    #:datum-literals (tfunc)
-    [(_ f ds)
-     #:with exp (local-expand #'f (syntax-local-context) (kernel-form-identifier-list))
-     #:with tfunc (syntax-property #'exp 'rsl-func-type)
-     ;; compose the new function to the previously composed functions
-     #'(Datashell (Datashell-dataset ds) (compose f (Datashell-op ds)))]))
+(define-syntax (ds-map stx)
+  (syntax-parse stx
+    #:literals (rsl-lambda)
+    ;; Static checking for lambda literals
+    [(_ (lambda (args ...) body ...) ds)
+     #:with l (length (syntax->list #'(args ...)))
+     #:fail-unless (= (eval #'l) 1) "lambda must have 1 argument in ds-map"
+     #'(ds-map-func (lambda (args ...) body ...) ds)]
+    [(_ f:id ds)
+     #'(ds-map-func f ds)]))
+
 
 
 ; ds-reduce: AFunc Expr Datashell -> Any
@@ -72,12 +65,15 @@
 ; apply the final composed function on the given datashell and return the result
 (define-syntax ds-reduce
   (syntax-parser
-    #:datum-literals (afunc)
-    [(_ f base ds)
-     #:with exp (local-expand #'f (syntax-local-context) (kernel-form-identifier-list))
-     #:with afunc (syntax-property #'exp 'rsl-func-type)
+    #:literals (rsl-lambda)
+    ;; Static checking for lambda literals
+    [(_ (lambda (args ...) body ...) acc:expr ds)
+     #:with l (length (syntax->list #'(args ...)))
+     #:fail-unless (= (eval #'l) 2) "lambda must have 2 arguments in ds-reduce"
+     #'(ds-reduce-func (lambda (args ...) body ...) acc ds)]
+    [(_ f acc ds)
      ;; perform the queued transformations, then run the reduction
-     #'(foldl f base (ds))]))
+     #'(ds-reduce-func f acc ds)]))
 
 ;; -----------------------------------------------------------------------------
 ;; RUNTIME LIB
@@ -95,5 +91,20 @@
   (define mapped (map (Datashell-op ds) (Datashell-dataset ds)))
   mapped)
 
-;; (Datashell [Listof Any]
+;; ds-map-func: TFunc Datashell -> Datashell
+;; Queues up a mapping to later be applied to a Datashell's data.
+(define (ds-map-func tfunc ds)
+  (if (procedure-arity-includes? tfunc 1)
+      (Datashell (Datashell-dataset ds) (compose1 tfunc (Datashell-op ds)))
+      (error 'ds-map "Invalid map function, must take 1 argument")))
+
+;; ds-reduce-func: AFunc Any Datashell -> Any
+;; Execute all queued mapping transformations onto the Datashell's data,
+;; then reduces the data with the given function.
+(define (ds-reduce-func afunc acc ds)
+  (if (procedure-arity-includes? afunc 2)
+      (foldl afunc acc (ds))
+      (error 'ds-reduce "Invalid reduce function, must take 2 arguments")))
+  
+;; (Datashell [Listof Any] 
 (struct Datashell (dataset op) #:transparent #:property prop:procedure ds-collect)
