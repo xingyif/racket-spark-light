@@ -59,17 +59,17 @@
     [(_ f ds)
      #:with exp (local-expand #'f (syntax-local-context) (kernel-form-identifier-list))
      #:with tfunc (syntax-property #'exp 'rsl-func-type)
-     ;; cons the new function to the old queue of functions
+     ;; compose the new function to the previously composed functions
      #'(Datashell (Datashell-dataset ds) (compose f (Datashell-ops ds)))]))
 
 (define-syntax ds-reduce
   (syntax-parser
     #:datum-literals (afunc)
-    [(_ f ds)
+    [(_ f base ds)
      #:with exp (local-expand #'f (syntax-local-context) (kernel-form-identifier-list))
      #:with afunc (syntax-property #'exp 'rsl-func-type)
      ;; perform the queued transformations, then run the reduction
-     #'(foldl f (ds))]))
+     #'(foldl f base (ds))]))
 
 
 

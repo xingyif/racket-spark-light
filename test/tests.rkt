@@ -3,7 +3,7 @@
 
 ((lambda (z) 3) 4)
 
-(ds-reduce (lambda (r acc) (+ r acc))
+(ds-reduce (lambda (r acc) (+ r acc)) 0
            (ds-map (lambda (y) (* 2 y))
                    (ds-map (lambda (z) (add1 z))
                            (mk-datashell '(1 3)))))
