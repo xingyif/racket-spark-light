@@ -12,7 +12,7 @@
  ds-map
  ds-reduce
  mk-datashell
- collect-ds)
+ ds-collect)
 
 ;; ---------------------------------------------------------------------------------------------------
 ;; DEPENDENCY
@@ -84,10 +84,10 @@
       (error 'mk-datashell "First arg must be a list")))
 
 ;; collect-ds: Datashell -> [Listof Any]
-(define (collect-ds ds)
+(define (ds-collect ds)
   ;; apply composed function to the stored list, then return the list
   (define mapped (map (Datashell-op ds) (Datashell-dataset ds)))
   mapped)
 
 ;; (Datashell [Listof Any] 
-(struct Datashell (dataset op) #:transparent #:property prop:procedure collect-ds)
+(struct Datashell (dataset op) #:transparent #:property prop:procedure ds-collect)
