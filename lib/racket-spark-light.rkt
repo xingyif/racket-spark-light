@@ -80,7 +80,7 @@
 ;; Create a Datashell from a given list
 (define (mk-datashell data-list)
   (if (list? data-list)
-      (Datashell data-list void)
+      (Datashell data-list (lambda (any) any))
       (error 'mk-datashell "First arg must be a list")))
 
 (define (collect-ds this)

@@ -5,7 +5,7 @@
 
 (ds-reduce (lambda (r acc) (+ r acc)) 0
            (ds-map (lambda (y) (* 2 y))
-                   (ds-map (lambda (z) (add1 z))
+                   (ds-map (lambda (y) (* 2 y))
                            (mk-datashell '(1 3)))))
 
 (define xx (mk-datashell '(12 2)))
