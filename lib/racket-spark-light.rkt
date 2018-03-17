@@ -49,10 +49,9 @@
      (syntax-property #'func 'rsl-func-type 'afunc)]
     ;; Regular lambda, not compatible with RSL
     [(_ e ...)
-     (displayln "case 3")
      #'(lambda e ...)]))
 
-
+;; ds-map: (ds-map TFunc Datashell)
 (define-syntax ds-map
   (syntax-parser
     #:datum-literals (tfunc)
@@ -60,16 +59,17 @@
      #:with exp (local-expand #'f (syntax-local-context) (kernel-form-identifier-list))
      #:with tfunc (syntax-property #'exp 'rsl-func-type)
      ;; cons the new function to the old queue of functions
-     #'(Datashell (Datashell-dataset ds) (compose f (Datashell-ops ds)))]))
+     #'(Datashell (Datashell-dataset ds) (compose f (Datashell-op ds)))]))
 
+;; ds-reduce: (ds-reduce AFunc Expr Datashell)
 (define-syntax ds-reduce
   (syntax-parser
     #:datum-literals (afunc)
-    [(_ f ds)
+    [(_ f acc ds)
      #:with exp (local-expand #'f (syntax-local-context) (kernel-form-identifier-list))
      #:with afunc (syntax-property #'exp 'rsl-func-type)
      ;; perform the queued transformations, then run the reduction
-     #'(foldl f (ds))]))
+     #'(foldl f acc (ds))]))
 
 
 
@@ -80,13 +80,14 @@
 ;; Create a Datashell from a given list
 (define (mk-datashell data-list)
   (if (list? data-list)
-      (Datashell data-list void)
+      (Datashell data-list (lambda (any) any))
       (error 'mk-datashell "First arg must be a list")))
 
-(define (collect-ds this)
-  ;; the thing we want to do when we use the DataSet as a function
-  ;; apply composed function to the list
-  (define mapped (map (Datashell-ops this) (Datashell-dataset this)))
+;; collect-ds: Datashell -> [Listof Any]
+(define (collect-ds ds)
+  ;; apply composed function to the stored list, then return the list
+  (define mapped (map (Datashell-op ds) (Datashell-dataset ds)))
   mapped)
 
-(struct Datashell (dataset ops) #:transparent #:property prop:procedure collect-ds)
+;; (Datashell [Listof Any] 
+(struct Datashell (dataset op) #:transparent #:property prop:procedure collect-ds)
