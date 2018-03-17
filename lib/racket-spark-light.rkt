@@ -55,7 +55,7 @@
 ; maps the given function on the Datashell and returns a new Datashell
 ; Transformation: lazily evaluated. Compose the given function with the previous functions
 ; but do not evaluated the given function
-; Example: (ds-map (lambda (x) (+ 1 x)) (mk-datashell '(1 2)) -> (Datashell '2 3) 
+; Example: (ds-map (lambda (x) (+ 1 x)) (mk-datashell '(1 2)) -> (Datashell '2 3)
 (define-syntax ds-map
   (syntax-parser
     #:datum-literals (tfunc)
@@ -64,6 +64,7 @@
      #:with tfunc (syntax-property #'exp 'rsl-func-type)
      ;; compose the new function to the previously composed functions
      #'(Datashell (Datashell-dataset ds) (compose f (Datashell-op ds)))]))
+
 
 ; ds-reduce: AFunc Expr Datashell -> Any
 ; reduces the Datashell to a non Datashell type
@@ -94,5 +95,5 @@
   (define mapped (map (Datashell-op ds) (Datashell-dataset ds)))
   mapped)
 
-;; (Datashell [Listof Any] 
+;; (Datashell [Listof Any]
 (struct Datashell (dataset op) #:transparent #:property prop:procedure ds-collect)
