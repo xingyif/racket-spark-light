@@ -172,5 +172,5 @@
          (error 'ds-reduce "Invalid second argument, should be a Datashell")]
         [else (foldl afunc acc (ds))]))
   
-;; (Datashell [Listof Any] 
+;; (Datashell [Listof Any] TFunc)
 (struct Datashell (dataset op) #:transparent #:property prop:procedure ds-collect)
