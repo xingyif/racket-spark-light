@@ -30,7 +30,10 @@
  
  ;; save-ds: Id Datashell -> Void
  ;; EFFECTS: Binds the Datashell to the given identifier in the global scope. Must be used at the top-level.
- save-ds)
+ save-ds
+
+ ;; (define-rsl (x x) Expr ... (values Expr ...))
+ define-rsl)
 
 ;; ---------------------------------------------------------------------------------------------------
 ;; DEPENDENCY
@@ -113,6 +116,13 @@
      ;; pass to the runtime function
      #'(ds-reduce-func f acc ds)]))
 
+;; (define-rsl (x x) Expr ... (values Expr ...))
+(define-syntax define-rsl
+  (syntax-parser
+    #:literals (values)
+    [(_ (name:id arg1:id) e ... (values r))
+     #'(define name (tfunc #'(arg1) #'(e ... (values r))))]))
+
 ;; save-ds: Id Datashell -> Void
 ;; EFFECTS: Always throws an error, see save-ds-top for the valid macro
 (define-syntax save-ds
@@ -171,6 +181,16 @@
         [(not (Datashell? ds))
          (error 'ds-reduce "Invalid second argument, should be a Datashell")]
         [else (foldl afunc acc (ds))]))
-  
+
+;; apply-tfunc: TFunc -> Error
+;; TFuncs should not be applied, but we want them to be funcs so they appear
+;; as funcs in the interactions window
+(define (apply-tfunc tfunc)
+  (error 'RSL "Functions declared with define-rsl must be applied by ds-map"))
+
 ;; (Datashell [Listof Any] TFunc)
 (struct Datashell (dataset op) #:transparent #:property prop:procedure ds-collect)
+
+;; (tfunc STX)
+;; TFunc will be created from define-rsl
+(struct tfunc (arg-name func-syntax) #:property prop:procedure apply-tfunc)
