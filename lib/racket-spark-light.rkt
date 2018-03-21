@@ -78,7 +78,7 @@
        [other
         #'other])]))
 
-;; ds-map: (ds-map TFunc Datashell)
+;; ds-map: TFunc Datashell -> Datashell
 ;; maps the given function on the Datashell and returns a new Datashell
 ;; Transformation: lazily evaluated. Compose the given function with the previous functions
 ;; but do not evaluated the given function
