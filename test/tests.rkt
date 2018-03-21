@@ -45,8 +45,12 @@
 #;(save-ds n 2)
 
 (define-rsl (r1 x)
-  (define y 3)
-  (values x))
+  (values (+ 1 x)))
+
+(define-rsl (r2 y)
+  (values y))
+
+(compose-rsl r1 r2)
 
 #|
 

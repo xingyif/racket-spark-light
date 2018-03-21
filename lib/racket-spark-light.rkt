@@ -33,7 +33,10 @@
  save-ds
 
  ;; (define-rsl (x x) Expr ... (values Expr ...))
- define-rsl)
+ define-rsl
+
+ compose-rsl
+ create-rsl)
 
 ;; ---------------------------------------------------------------------------------------------------
 ;; DEPENDENCY
@@ -130,6 +133,22 @@
     [(_ e ...)
      #:fail-unless #f "save-ds may only be used at the top level"
      #'(error 'save-ds "save-ds may only be used at the top level")]))
+
+;; compose-rsl: TFunc TFunc -> TFunc
+;; Pull apart the tfuncs for the create-rsl macro
+(define-syntax compose-rsl
+  (syntax-parser
+    [(_ f1 f2)
+     #'(create-rsl [(tfunc-arg-name f1) (tfunc-arg-name f2)] (tfunc-func-syntax f1) (tfunc-func-syntax f2))]))
+
+;; create-rsl: x x Expr Expr
+;; Merge the two exprs, replacing the new-args in body2 with the orig-arg from body1
+(define-syntax create-rsl
+  (syntax-parser
+    [(_ [orig-arg new-arg] body1 body2)
+     #:with (e ...) #'body1
+     #'(begin (displayln (e ...)))
+     #;#'(begin (displayln body1) (displayln body2))]))
 
 ;; save-ds-top: x Datashell -> Void
 ;; EFFECTS: Binds the Datashell to the given identifier in the global scope. Must be used at the top-level.
