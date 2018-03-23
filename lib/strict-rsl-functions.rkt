@@ -4,7 +4,7 @@
 (require (for-syntax syntax/parse))
 
 (begin-for-syntax
-  (struct rsl-func (agrs body)))
+  (struct rsl-func (args body)))
 
 (define-syntax rs-x (rsl-func #'(x) #'(+ x 1)))
 
@@ -22,7 +22,7 @@
   (define x (- y 1))
    x)
 
-(define comp1 ((rsl-compose rs1 rs2)) 2)
+(define comp1 ((rsl-compose rs1 rs2) 2))
 
 
 (define-syntax (rsl-compose stx)
