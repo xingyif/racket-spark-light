@@ -35,8 +35,8 @@
  ;; (define-rsl (x x) Expr ... (values Expr ...))
  define-rsl
 
- compose-rsl
- create-rsl)
+ #;compose-rsl
+ #;create-rsl)
 
 ;; ---------------------------------------------------------------------------------------------------
 ;; DEPENDENCY
@@ -139,7 +139,7 @@
 
 ;; compose-rsl: TFunc TFunc -> TFunc
 ;; Pull apart the tfuncs for the create-rsl macro
-(define-syntax compose-rsl
+#;(define-syntax compose-rsl
   (syntax-parser
     [(_ f1 f2)
      #'(create-rsl [(tfunc-arg-name f1) (tfunc-arg-name f2)] (tfunc-func-syntax f1) (tfunc-func-syntax f2))]))
