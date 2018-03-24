@@ -12,11 +12,11 @@
  (rename-out [rsl-lambda lambda]
              [rsl-module-begin #%module-begin])
  
- ;; ds-map: TFUNC Datashell -> Datashell
+ ;; ds-map: TFunc Datashell -> Datashell
  ;; Creates a new Datashell with the old Datashell mapped with the given function.
  ds-map
  
- ;; ds-reduce: AFUNC Any Datashell -> Any
+ ;; ds-reduce: AFunc Any Datashell -> Any
  ;; Collects the data in a Datashell, then reduces it with the given function and accumulator.
  ds-reduce
  
@@ -60,7 +60,8 @@
     [(_ e ...)
      #'(#%module-begin (validate-top-level e) ...)]))
 
-;; (rsl-lambda (arg ...) body body-more ...)
+;; rsl-lambda: Procedure -> Procedure
+;; Example: (rsl-lambda (arg ...) body body-more ...)
 ;; RSL lambda is currently regular lambda, may not be needed
 (define-syntax rsl-lambda
   (syntax-parser
@@ -85,7 +86,7 @@
         #'other])]))
 
 ;; ds-map: TFunc Datashell -> Datashell
-;; maps the given function on the Datashell and returns a new Datashell
+;; Maps the given function on the Datashell and returns a new Datashell
 ;; Transformation: lazily evaluated. Compose the given function with the previous functions
 ;; but do not evaluated the given function
 ;; Example: (ds-map (lambda (x) (+ 1 x)) (mk-datashell '(1 2)) -> (Datashell '2 3)
@@ -103,7 +104,7 @@
      #'(ds-map-func f ds)]))
 
 ;; ds-reduce: AFunc Any Datashell -> Any
-;; reduces the Datashell to a non Datashell type
+;; Reduces the Datashell to a non Datashell type
 ;; Action: eagerly evaluated, triggers all transformations stored on the datashell and the actor
 ;; apply the final composed function on the given datashell and return the result
 (define-syntax ds-reduce
