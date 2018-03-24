@@ -15,7 +15,7 @@
      #'(define-syntax name (rsl-func #'arg #'(body ...)))]))
 
 (define-rsl (rs1 x)
-  (define y (+ x 1))
+  (define y (+ x 2))
   y)
 
 (define-rsl (rs2 y)

@@ -12,11 +12,11 @@
  (rename-out [rsl-lambda lambda]
              [rsl-module-begin #%module-begin])
  
- ;; ds-map: TFUNC Datashell -> Datashell
+ ;; ds-map: TFunc Datashell -> Datashell
  ;; Creates a new Datashell with the old Datashell mapped with the given function.
  ds-map
  
- ;; ds-reduce: AFUNC Any Datashell -> Any
+ ;; ds-reduce: AFunc Any Datashell -> Any
  ;; Collects the data in a Datashell, then reduces it with the given function and accumulator.
  ds-reduce
  
@@ -35,8 +35,8 @@
  ;; (define-rsl (x x) Expr ... (values Expr ...))
  define-rsl
 
- compose-rsl
- create-rsl)
+ #;compose-rsl
+ #;create-rsl)
 
 ;; ---------------------------------------------------------------------------------------------------
 ;; DEPENDENCY
@@ -60,7 +60,8 @@
     [(_ e ...)
      #'(#%module-begin (validate-top-level e) ...)]))
 
-;; (rsl-lambda (arg ...) body body-more ...)
+;; rsl-lambda: Procedure -> Procedure
+;; Example: (rsl-lambda (arg ...) body body-more ...)
 ;; RSL lambda is currently regular lambda, may not be needed
 (define-syntax rsl-lambda
   (syntax-parser
@@ -85,7 +86,7 @@
         #'other])]))
 
 ;; ds-map: TFunc Datashell -> Datashell
-;; maps the given function on the Datashell and returns a new Datashell
+;; Maps the given function on the Datashell and returns a new Datashell
 ;; Transformation: lazily evaluated. Compose the given function with the previous functions
 ;; but do not evaluated the given function
 ;; Example: (ds-map (lambda (x) (+ 1 x)) (mk-datashell '(1 2)) -> (Datashell '2 3)
@@ -103,7 +104,7 @@
      #'(ds-map-func f ds)]))
 
 ;; ds-reduce: AFunc Any Datashell -> Any
-;; reduces the Datashell to a non Datashell type
+;; Reduces the Datashell to a non Datashell type
 ;; Action: eagerly evaluated, triggers all transformations stored on the datashell and the actor
 ;; apply the final composed function on the given datashell and return the result
 (define-syntax ds-reduce
@@ -119,7 +120,9 @@
      ;; pass to the runtime function
      #'(ds-reduce-func f acc ds)]))
 
+;; define-rsl: String Any -> Any
 ;; (define-rsl (x x) Expr ... (values Expr ...))
+;; Creates a TFunc, given name, one and only one argument, and body of the TFunc
 (define-syntax define-rsl
   (syntax-parser
     #:literals (values)
@@ -136,21 +139,19 @@
 
 ;; compose-rsl: TFunc TFunc -> TFunc
 ;; Pull apart the tfuncs for the create-rsl macro
-(define-syntax compose-rsl
+#;(define-syntax compose-rsl
   (syntax-parser
     [(_ f1 f2)
      #'(create-rsl [(tfunc-arg-name f1) (tfunc-arg-name f2)] (tfunc-func-syntax f1) (tfunc-func-syntax f2))]))
 
 ;; create-rsl: x x Expr Expr
 ;; Merge the two exprs, replacing the new-args in body2 with the orig-arg from body1
-(define-syntax create-rsl
+#;(define-syntax create-rsl
   (syntax-parser
     [(_ [orig-arg new-arg] body1 body2)
-     #:with (e ...) #'body1
-     #'(begin (displayln (e ...)))
-     #;#'(begin (displayln body1) (displayln body2))]))
+    ...]))
 
-;; save-ds-top: x Datashell -> Void
+;; save-ds-top: String Datashell -> Void
 ;; EFFECTS: Binds the Datashell to the given identifier in the global scope. Must be used at the top-level.
 (define-syntax save-ds-top
   (syntax-parser
