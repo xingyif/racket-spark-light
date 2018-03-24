@@ -28,7 +28,6 @@
                              #'((define y (+ 1 x)) y)))
 
 (define-syntax (rsl-compose stx)
-  (macro2 3)
   (syntax-parse stx
     [(_ f1:id f2:id)
      #:do [(define exp1 (syntax-local-value #'f1))
