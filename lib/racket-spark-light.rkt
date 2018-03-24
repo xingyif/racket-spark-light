@@ -120,7 +120,9 @@
      ;; pass to the runtime function
      #'(ds-reduce-func f acc ds)]))
 
+;; define-rsl: String Any -> Any
 ;; (define-rsl (x x) Expr ... (values Expr ...))
+;; Creates a TFunc, given name, one and only one argument, and body of the TFunc
 (define-syntax define-rsl
   (syntax-parser
     #:literals (values)
@@ -144,14 +146,12 @@
 
 ;; create-rsl: x x Expr Expr
 ;; Merge the two exprs, replacing the new-args in body2 with the orig-arg from body1
-(define-syntax create-rsl
+#;(define-syntax create-rsl
   (syntax-parser
     [(_ [orig-arg new-arg] body1 body2)
-     #:with (e ...) #'body1
-     #'(begin (displayln (e ...)))
-     #;#'(begin (displayln body1) (displayln body2))]))
+    ...]))
 
-;; save-ds-top: x Datashell -> Void
+;; save-ds-top: String Datashell -> Void
 ;; EFFECTS: Binds the Datashell to the given identifier in the global scope. Must be used at the top-level.
 (define-syntax save-ds-top
   (syntax-parser
