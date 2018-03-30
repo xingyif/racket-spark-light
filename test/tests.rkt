@@ -34,25 +34,26 @@
 ;; Test 2: Mapping small quantities of numbers w/ printing to prove single iteration
 ;; TFuncs
 (define-transformation (sub-3-print num)
-  (display "t0 ")
+  (display "t1 ")
   (- num 3))
 
 (define-transformation (mult-2-print num)
-  (display "t1 ")
+  (display "t0 ")
   (* num 2))
 
 ;; Transformation Applications
-(save-ds 15-range (mk-datashell '(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15)))
+(save-ds 15-range (mk-datashell '(0 1 2 3 4 5 6 7 8 9 10 11 12 13 14)))
 (save-ds 15-range-middle (ds-map mult-2-print 15-range)) ;; 
 (save-ds 15-range-final (ds-map sub-3-print 15-range-middle))
 
 ;; Racket's mapping will print "t0" 15 times, then print "t1" 15 times since it iterates twice.
-#;(map (lambda (x) (println "t1") (- x 3)) (map (lambda (y) (println "t0") (* 2 y)) (range 15)))
+(define 15-range-final-racket  (map (lambda (x) (display "t1,") (- x 3)) (map (lambda (y) (display "t0,") (* 2 y)) (range 15))))
 
 ;; RSL's mapping will print alternating "first func" and "second func" as the functions are merged, and iteration only occurs once
 #;(ds-collect 15-range-final)
 
-(check-equal? (ds-collect 15-range-final) '(-1 1 3 5 7 9 11 13 15 17 19 21 23 25 27))
+;(check-equal? (ds-collect 15-range-final) '(-1 1 3 5 7 9 11 13 15 17 19 21 23 25 27))
+(check-equal? (ds-collect 15-range-final) 15-range-final-racket)
 
 ;; Test 3: Mapping small quantities of numbers w/ global mutation (DOES NOT WORK, Should it?)
 
