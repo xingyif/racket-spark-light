@@ -3,57 +3,114 @@
 (require (for-syntax syntax/parse))
 (require rackunit)
 
-(save-ds x (mk-datashell '(12 2)))
-(save-ds xy (ds-map add1 x))
-(save-ds xz (ds-map (lambda (i) (+ 1 i)) x))
+;; Test 1: Mapping small quantities of numbers w/ internal mutation
+;; TFuncs
+(define-transformation (add-5 y)
+  (define x 100)
+  (set! x 5)
+  (+ y x))
 
-;; only works if the underlying identifier is a datashell
-(save-ds xz-clone xz)
+(define-transformation (add-2 y)
+  (define z 2)
+  (+ y z))
 
-(define xy-res (ds-reduce (lambda (x y) (+ x y)) 0 xy))
-(define xz-res (ds-reduce + 0 xz))
-
-(check-equal? xy-res 16)
-(check-equal? xz-res 16)
-
-;; Ds-maps can be chained an arbitrary number of times
-(check-equal? (ds-reduce (lambda (r acc) (+ r acc)) 0
-                         (ds-map (lambda (y) (* 2 y))
-                                 (ds-map (lambda (y) (* 2 y))
-                                         (mk-datashell '(1 3)))))
-              16)
-
-;; Incorrect datashell argument
-#;(ds-reduce (lambda (r) (+  r)) 0 2)
-;; Incorrect function argument, must be TFunc
-#;(ds-reduce (lambda (r) (+  r 1)) 0 (mk-datashell '(1 2 3)))
-
-;; Gives a static error, because save-ds can only be used at the top level
-#;(define (y)
-  (save-ds (mk-datashell '(10 20))))
-
-(define-syntax save-datashell
-  (syntax-parser
-    [(_ e ...)
-     #'(save-ds e ...)]))
-
-;; Gives a static error, because save-ds can only be used at the top level
-#;(define (y-mac)
-  (save-datashell (mk-datashell '(10 20))))
-
-;; Gives a dynamic error, must be a datashell, not a number
-#;(save-ds n 2)
-
-(define-rsl (r1 x)
-  (values (+ 1 x)))
-
-(define-rsl (r2 y)
-  (values y))
-
-(compose-rsl r1 r2)
-
-#|
+(define-transformation (sub-8 z)
+  (- z 8))
 
 
+;; Transformation Applications
+(save-ds a (mk-datashell '(5 2)))
+(save-ds ab (ds-map add-5 a)) ; Add 5: (10 7)
+(save-ds abc (ds-map add-2 ab)) ; Add 2: (12 9)
+(save-ds abcd (ds-map sub-8 abc)) ; Subtract 8: (4 1)
 
-|#
+;; Collect the data in the Datashell
+#;(ds-collect abcd)
+
+(check-equal? (ds-collect a) '(5 2))
+(check-equal? (ds-collect ab) '(10 7))
+(check-equal? (ds-collect abc) '(12 9))
+(check-equal? (ds-collect abcd) '(4 1))
+
+;; Test 2: Mapping small quantities of numbers w/ printing to prove single iteration
+;; TFuncs
+(define-transformation (sub-3-print num)
+  (display "t0 ")
+  (- num 3))
+
+(define-transformation (mult-2-print num)
+  (display "t1 ")
+  (* num 2))
+
+;; Transformation Applications
+(save-ds 15-range (mk-datashell '(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15)))
+(save-ds 15-range-middle (ds-map mult-2-print 15-range)) ;; 
+(save-ds 15-range-final (ds-map sub-3-print 15-range-middle))
+
+;; Racket's mapping will print "t0" 15 times, then print "t1" 15 times since it iterates twice.
+#;(map (lambda (x) (println "t1") (- x 3)) (map (lambda (y) (println "t0") (* 2 y)) (range 15)))
+
+;; RSL's mapping will print alternating "first func" and "second func" as the functions are merged, and iteration only occurs once
+#;(ds-collect 15-range-final)
+
+(check-equal? (ds-collect 15-range-final) '(-1 1 3 5 7 9 11 13 15 17 19 21 23 25 27))
+
+;; Test 3: Mapping small quantities of numbers w/ global mutation (DOES NOT WORK, Should it?)
+
+;; Global variable to mutate
+(define global-1 0)
+
+;; TFuncs
+(define-transformation (global-1++ num)
+  (set! global-1 (+ global-1 1))
+  num)
+
+(define-transformation (add-global-1-- num)
+  (let ([global-val global-1])
+    (set! global-1 (- global-1 1))
+    (+ num global-val)))
+
+;; Transformation Applications
+(save-ds 10-range (mk-datashell '(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15)))
+(save-ds 10-range-middle (ds-map global-1++ 15-range)) ;; 
+(save-ds 10-range-final (ds-map add-global-1-- 15-range-middle))
+
+;; BROKEN
+;; global-1 is not accessible inside the rsl-func's, bad static error when this is uncommented
+;; each rsl-func name and datashell name is stored as a syntax variable, so it is a phase error
+#;(ds-collect 10-range-final)
+
+;; Test 4: Mapping small quantities of numbers w/ internal mutation and FILTER
+
+;; tfuncs
+(define-filter-pred (less-than-5? num)
+  (if #t (< num 5) #f))
+
+(define-transformation (mult-10 num)
+  (* 10 num))
+
+;; afuncs
+
+(define-filter-pred (multiple-of-20? num)
+  (= (modulo num 20) 0))
+
+;; Transformation Applications
+(save-ds a2 (mk-datashell '(1 2 3 4 5 6 7 8 9 10)))
+(save-ds ab2 (ds-map less-than-5? a2)) 
+(save-ds abc2 (ds-map mult-10 ab2))
+(save-ds abcd2 (ds-map multiple-of-20? abc2))
+
+#;(ds-collect abcd2)
+#;(ds-reduce cons '() abcd2)
+
+(define (adder new acc)
+  (+ new acc))
+
+(check-equal? (ds-collect abcd2) '(20 40))
+(check-equal? (append (ds-collect abcd2) '(5)) (ds-reduce cons (cons 5 '()) abcd2))
+(check-equal? (ds-reduce + 0 abcd2) 60)
+(check-equal? (ds-reduce + (+ 2 3) abcd2) 65)
+(check-equal? (ds-reduce (lambda (x y) (+ x y)) (+ 2 3) abcd2) 65)
+
+;; Nice error! It even points to the issue in this file.
+#;(save-ds l (ds-map less-than-5? less-than-5?))
