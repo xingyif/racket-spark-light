@@ -32,7 +32,10 @@
  
  ;; ds-collect: Datashell -> [Listof Any]
  ;; Collects the data in a Datashell and returns it.
- ds-collect)
+ ds-collect
+
+ ;; for debugging ONLY to see the internal graph
+ get-graph)
 
 ;; ---------------------------------------------------------------------------------------------------
 ;; DEPENDENCY
@@ -59,19 +62,30 @@
 
   (require racket)
 
+  ;; Debugging tool, to view the graph
+  (define (get-graph-internal)
+    rsl-graph)
+
   ;; (Datashell [Listof Any] TFunc)
   (struct Datashell (dataset op) #:transparent)
 
   ;; (rsl-void)
   ;; our unique struct to identify when an item should be filtered during a map
   (struct rsl-void ())
+
+  ;; this graph holds all the data being stored in DS's to avoid multiple DS's needing to allocate
+  ;; memory to the same list currently only works with literal lists
+  (define rsl-graph (make-hash)) 
   
   ;; map-reduce: TFunc [Listof Any]
-  (define (map-filter-reduce tfunc afunc starting-acc data)
+  (define (map-filter-reduce tfunc afunc starting-acc data-key)
+    (define data (hash-ref rsl-graph data-key))
+    ;; create a function that will transform with tfunc then continue the reduction with afunc
     (define (tfunc-filter current-val acc)
       (let ([transformed (tfunc current-val)])
-        (cond [(rsl-void? transformed) acc]
+        (cond [(rsl-void? transformed) acc] ; we've filtered it out, skip
               [else (afunc transformed acc)])))
+    ;; one iteration
     (foldr tfunc-filter starting-acc data))
 
   ;; ds-reduce-func: AFunc Any Datashell -> Any
@@ -80,7 +94,7 @@
   (define (ds-reduce-func afunc acc ds)
     ;; unwrap the body of the lambda
     (define tfunc (eval (Datashell-op ds)))
-    (define data (syntax->datum (Datashell-dataset ds)))
+    (define data (syntax->datum (Datashell-dataset ds))) ; Datashells are read in as syntaxes
     (define collected (map-filter-reduce tfunc afunc acc data))
     collected)
 
@@ -91,10 +105,10 @@
 
 ;; [Listof Any] -> Datashell
 ;; Create a Datashell from a given list
-(define-for-syntax mk-datashell
-  (syntax-parser
-    [(_ e)
-     (define ds (Datashell #'e #'(lambda (x) x)))
+(define-for-syntax (mk-datashell stx)
+  (syntax-parse stx
+    [e
+     #:do [(define ds (Datashell #'e #'(lambda (x) x)))]
      ds]))
 
 ;; compose-tfunc: TFunc TFunc -> TFunc
@@ -115,9 +129,8 @@
             (let ([f1-arg (let () f2-body ...)])
               (cond [(rsl-void? f1-arg) f1-arg]
                     [else f1-body ...])))]
-       ;; Filtering predicate, we need to turn the predicate into a
-       ;; filtering func that pulls replaces the item with an rsl-void
-       ;; if it's false. Compose with existing function.
+       ;; Filtering predicate, turn the predicate into filtering func that replaces item with rsl-void
+       ;; if false. Compose with existing function.
        [(pred (f1-arg) f1-body ...)
         #'(lambda (f2-arg)
             (let ([f1-arg (let () f2-body ...)])
@@ -236,8 +249,8 @@
 (define-syntax save-ds
   (syntax-parser
     [(_ e ...)
-     #:fail-unless #f "save-ds may only be used at the top level"
-     #'(error 'save-ds "save-ds may only be used at the top level")]))
+     #:fail-unless #f "save-ds may only be used as a module-level definition"
+     #'(error 'save-ds "save-ds may only be used as a module-level definition")]))
 
 ;; save-ds-top: String Datashell -> Void
 ;; EFFECTS: Binds the Datashell to the given identifier in the global scope. Must be used at the top-level.
@@ -245,7 +258,8 @@
   (syntax-parser
     #:datum-literals (mk-datashell ds-map)
     [(_ i:id (mk-datashell e))
-     #`(define-syntax i #,(mk-datashell #'e))]
+     #:do [(hash-set! rsl-graph (syntax->datum #'i) (eval #'e))]
+     #`(define-syntax i '#,(mk-datashell #'i))]
     [(_ i:id (ds-map e ...))
      #`(define-syntax i #,(ds-map #'(e ...)))]
     [(_ e ...)
@@ -265,10 +279,13 @@
            ;; the transformed data as a list
            (define collected (collect-only datashell))]
      ;; splice the list back into the syntax
-     #`(list #,@collected)]))
+     #`'#,collected]))
 
 ;; -----------------------------------------------------------------------------
 ;; RUNTIME LIB
 
-
-
+;; Debugging function to display the graph
+;; (get-graph)
+(define-syntax (get-graph stx)
+  (define x (get-graph-internal))
+  #`#,x)

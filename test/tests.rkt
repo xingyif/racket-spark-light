@@ -17,7 +17,6 @@
 (define-transformation (sub-8 z)
   (- z 8))
 
-
 ;; Transformation Applications
 (save-ds a (mk-datashell '(5 2)))
 (save-ds ab (ds-map add-5 a)) ; Add 5: (10 7)
@@ -103,8 +102,6 @@
 #;(ds-collect abcd2)
 #;(ds-reduce cons '() abcd2)
 
-(define (adder new acc)
-  (+ new acc))
 
 (check-equal? (ds-collect abcd2) '(20 40))
 (check-equal? (append (ds-collect abcd2) '(5)) (ds-reduce cons (cons 5 '()) abcd2))
@@ -114,3 +111,4 @@
 
 ;; Nice error! It even points to the issue in this file.
 #;(save-ds l (ds-map less-than-5? less-than-5?))
+
