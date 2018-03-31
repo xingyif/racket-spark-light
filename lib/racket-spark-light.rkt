@@ -109,7 +109,8 @@
   (syntax-parse stx
     [e
      #:do [(define ds (Datashell #'e #'(lambda (x) x)))]
-     ds]))
+     ds]
+    ))
 
 ;; compose-tfunc: TFunc TFunc -> TFunc
 ;; Pull apart the tfuncs for the create-rsl macro
@@ -258,7 +259,11 @@
   (syntax-parser
     #:datum-literals (mk-datashell ds-map)
     [(_ i:id (mk-datashell e))
-     #:do [(hash-set! rsl-graph (syntax->datum #'i) (eval #'e))]
+     #:do [(define error-msg-ds "argument must be a list or a path to a CSV file!")
+           (unless (or (list? (eval #'e))
+                       (string? #'e))
+             (raise-syntax-error 'save-ds error-msg-ds #'e))
+           (hash-set! rsl-graph (syntax->datum #'i) (eval #'e))]
      #`(define-syntax i '#,(mk-datashell #'i))]
     [(_ i:id (ds-map e ...))
      #`(define-syntax i #,(ds-map #'(e ...)))]

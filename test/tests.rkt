@@ -19,6 +19,7 @@
 
 ;; Transformation Applications
 (save-ds a (mk-datashell '(5 2)))
+;(save-ds a (mk-datashell 5))
 (save-ds ab (ds-map add-5 a)) ; Add 5: (10 7)
 (save-ds abc (ds-map add-2 ab)) ; Add 2: (12 9)
 (save-ds abcd (ds-map sub-8 abc)) ; Subtract 8: (4 1)
