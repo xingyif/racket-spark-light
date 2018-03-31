@@ -19,6 +19,7 @@
 
 ;; Transformation Applications
 (save-ds a (mk-datashell '(5 2)))
+;; won't work because a mk-datashell only takes a list or a path to a csv file
 ;(save-ds a (mk-datashell 5))
 (save-ds ab (ds-map add-5 a)) ; Add 5: (10 7)
 (save-ds abc (ds-map add-2 ab)) ; Add 2: (12 9)
