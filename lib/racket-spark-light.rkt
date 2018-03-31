@@ -88,10 +88,10 @@
     ;; one iteration
     (foldr tfunc-filter starting-acc data))
 
-  ;; ds-reduce-func: AFunc Any Datashell -> Any
+  ;; ds-reduce-phase-one: AFunc Any Datashell -> Any
   ;; Execute all queued mapping transformations onto the Datashell's data,
   ;; then reduces the data with the given function.
-  (define (ds-reduce-func afunc acc ds)
+  (define (ds-reduce-phase-one afunc acc ds)
     ;; unwrap the body of the lambda
     (define tfunc (eval (Datashell-op ds)))
     (define data (syntax->datum (Datashell-dataset ds))) ; Datashells are read in as syntaxes
@@ -101,7 +101,7 @@
   ;; collect-only: Datashell -> [Listof Any]
   ;; Collects the data in a Datashell and returns it.
   (define (collect-only ds)
-    (ds-reduce-func cons '() ds))
+    (ds-reduce-phase-one cons '() ds))
 )
 
 ;; [Listof Any] -> Datashell
@@ -228,7 +228,7 @@
            (unless (Datashell? datashell)
              (raise-syntax-error 'ds-collect error-msg-ds #'ds))
            ;; the transformed data as a list, result from the phase 1 function
-           (define reduced (ds-reduce-func reduction (eval #'acc) datashell))]
+           (define reduced (ds-reduce-phase-one reduction (eval #'acc) datashell))]
      ;; reconstruct the lambda, pass to the runtime function
      #`'#,reduced]
     ;; Identifier for function ; TODO, only works with Racket base functions right now
@@ -240,7 +240,7 @@
            (unless (Datashell? datashell)
              (raise-syntax-error 'ds-collect error-msg-ds #'ds))
            ;; the transformed data as a list, result from the phase 1 function
-           (define reduced (ds-reduce-func reduction (eval #'acc) datashell))]
+           (define reduced (ds-reduce-phase-one reduction (eval #'acc) datashell))]
      ;; pass to the runtime function
      #`'#,reduced]))
 
