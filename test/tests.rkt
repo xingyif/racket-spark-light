@@ -5,16 +5,16 @@
 
 ;; Test 1: Mapping small quantities of numbers w/ internal mutation
 ;; TFuncs
-(define-transformation (add-5 y)
+(define-map-func (add-5 y)
   (define x 100)
   (set! x 5)
   (+ y x))
 
-(define-transformation (add-2 y)
+(define-map-func (add-2 y)
   (define z 2)
   (+ y z))
 
-(define-transformation (sub-8 z)
+(define-map-func (sub-8 z)
   (- z 8))
 
 ;; Transformation Applications
@@ -33,11 +33,11 @@
 
 ;; Test 2: Mapping small quantities of numbers w/ printing to prove single iteration
 ;; TFuncs
-(define-transformation (sub-3-print num)
+(define-map-func (sub-3-print num)
   (display "t1 ")
   (- num 3))
 
-(define-transformation (mult-2-print num)
+(define-map-func (mult-2-print num)
   (display "t0 ")
   (* num 2))
 
@@ -61,11 +61,11 @@
 (define global-1 0)
 
 ;; TFuncs
-(define-transformation (global-1++ num)
+(define-map-func (global-1++ num)
   (set! global-1 (+ global-1 1))
   num)
 
-(define-transformation (add-global-1-- num)
+(define-map-func (add-global-1-- num)
   (let ([global-val global-1])
     (set! global-1 (- global-1 1))
     (+ num global-val)))
@@ -86,7 +86,7 @@
 (define-filter-pred (less-than-5? num)
   (if #t (< num 5) #f))
 
-(define-transformation (mult-10 num)
+(define-map-func (mult-10 num)
   (* 10 num))
 
 ;; afuncs

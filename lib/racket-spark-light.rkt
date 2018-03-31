@@ -24,8 +24,8 @@
  ;; Collects the data in a Datashell, then reduces it with the given function and accumulator.
  ds-reduce
 
- ;; (define-transformation (Id Id) Expr ... (values Expr ...))
- define-transformation
+ ;; (define-map-func (Id Id) Expr ... (values Expr ...))
+ define-map-func
 
  ;; (define-filter-pred (Id Id) Expr ... (values Expr ...))
  define-filter-pred
@@ -169,9 +169,9 @@
     [(_ e ...)
      #'(#%module-begin (validate-top-level e) ...)]))
 
-;; (define-transformation (x x) Expr ... (values Expr ...))
+;; (define-map-func (x x) Expr ... (values Expr ...))
 ;; Creates a TFunc, given name, one and only one argument, and body of the TFunc
-(define-syntax define-transformation
+(define-syntax define-map-func
   (syntax-parser 
     [(_ (name:id arg:id) body ...)
      ;; wrap in transformation so compose knows this is a transformation
