@@ -98,19 +98,6 @@
     (define collected (map-filter-reduce tfunc afunc acc data))
     collected)
 
-  ;; ds-map-phase-one: TFunc Datashell -> Datashell
-  ;; Maps the given function on the Datashell and returns a new Datashell
-  ;; Transformation: lazily evaluated. Compose the given function with the previous functions
-  ;; but do not evaluated the given function
-  ;; Example: (ds-map-phase-one add-1 (mk-datashell '(1 2)) -> (Datashell '2 3)
-  (define (ds-map-phase-one tfunc ds)
-    (define composed-func (Datashell-op ds))
-    (define data (syntax->datum (Datashell-dataset ds)))
-    ; compose tfunc with the previously composed func
-    (define new-composed-func (compose-tfunc #`(#,tfunc #,composed-func)))
-    (define new-ds (Datashell data new-composed-func))
-    new-ds)
-
   ;; collect-only: Datashell -> [Listof Any]
   ;; Collects the data in a Datashell and returns it.
   (define (collect-only ds)
@@ -161,7 +148,7 @@
 ;; Transformation: lazily evaluated. Compose the given function with the previous functions
 ;; but do not evaluated the given function
 ;; Example: (ds-map add-1 (mk-datashell '(1 2)) -> (Datashell '2 3)
-#;(define-for-syntax (ds-map stx)
+(define-for-syntax (ds-map stx)
   (syntax-parse stx
     [(f:id ds)
      #:do [(define f+ (syntax-local-value #'f (thunk (raise-syntax-error 'ds-map "argument must be an RSL defined map or predicate" ds-map #'f))))
@@ -213,7 +200,7 @@
            (unless (Datashell? datashell)
              (raise-syntax-error 'ds-map error-msg-ds #'ds))
            ;; the transformed data as a list, result from the phase 1 function
-           (define mapped (ds-map-phase-one map-evaluated datashell))]
+           (define mapped (ds-map map-evaluated datashell))]
       #`'#,mapped]
     [(_ f:id ds:id)
      #:do [(define error-msg-ds "argument must be an RSL Datashell")
@@ -223,7 +210,7 @@
            (unless (Datashell? datashell)
              (raise-syntax-error 'ds-map error-msg-ds #'ds))
            ;; call ds-map in phase 1
-           (define mapped (ds-map-phase-one func-body datashell))]
+           (define mapped (ds-map func-body datashell))]
      #`'#,mapped]))
 ;; ds-reduce: AFunc Any Datashell -> Any
 ;; Reduces the Datashell to a non Datashell type
@@ -294,7 +281,7 @@
 ;; EFFECTS: Binds the Datashell to the given identifier in the global scope. Must be used at the top-level.
 (define-syntax save-ds-top
   (syntax-parser
-    #:datum-literals (mk-datashell ds-map-phase-one)
+    #:datum-literals (mk-datashell ds-map)
     [(_ i:id (mk-datashell e))
      #:do [(define error-msg-ds "argument must be a list or a path to a CSV file!")
            (unless (or (list? (eval #'e))
@@ -302,14 +289,11 @@
              (raise-syntax-error 'save-ds error-msg-ds #'e))
            (hash-set! rsl-graph (syntax->datum #'i) (eval #'e))]
      #`(define-syntax i '#,(mk-datashell #'i))]
-    [(_ i:id (ds-map f ds))
-     #:do [(define func (syntax-local-value #'f (thunk #'f)))
-           (define datashell (syntax-local-value #'ds (thunk #'ds)))
-           (define mapped (ds-map-phase-one func datashell))]
-     #`(define-syntax i '#,mapped)]
+    [(_ i:id (ds-map e ...))
+     #`(define-syntax i #,(ds-map #'(e ...)))]
     [(_ e ...)
      #'(error 'save-ds "save-ds requires an identifier and a Datashell as arguments")]))
-;#`'#,reduced
+
 ;; ds-collect: Datashell -> [List-of Any]
 ;; Collects the data in a Datashell and returns it.
 ;; (Pass user input to phase 1)
