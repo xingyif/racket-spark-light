@@ -10,6 +10,8 @@ Top-level       =       Definition
                 |       Expr
 
 Definition	= 	(define x RExpr)
+                |       (define-map-func x RExpr)
+                |       (define-filter-pred x RExpr)
                 |       (save-ds x Datashell) ;; Datashell saved as id x
 
 RExpr           =       All expressions from Racket
@@ -18,22 +20,22 @@ RExpr           =       All expressions from Racket
 Expr            = 	RExpr
                 |	TExpr
 
-TExpr		=       DataShell
+TExpr		=       Datashell
 		|	Tranformation
 		|	Action
-                |       DSFunc
 
 DSFunc          =       TFunc
                 =       AFunc
 
 TFunc		=	(λ (x) Expr)
+                        
 
 AFunc		=	(λ (x1 x2) Expr)
 
 FilePath        =       String ;; string describes a system filepath
 
 DataShell	= 	(mk-datashell [Listof Any])
-                |       (mk-datashell-csv FilePath) 
+                |       (mk-datashell FilePath) 
                 |       Transformation
 
 Tranformation   =       (ds-map TFunc DataShell)

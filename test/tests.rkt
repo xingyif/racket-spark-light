@@ -17,7 +17,7 @@
 (define-map-func (sub-8 z)
   (- z 8))
 
-#;(ds-map add-5 a)
+
 
 ;; Transformation Applications
 (save-ds a (mk-datashell '(5 2)))
@@ -25,6 +25,7 @@
 (save-ds abc (ds-map add-2 ab)) ; Add 2: (12 9)
 (save-ds abcd (ds-map sub-8 abc)) ; Subtract 8: (4 1)
 
+;(ds-map add-5 a)
 ;; Failure Example
 ;; won't work because a mk-datashell only takes a list or a path to a csv file
 ;(save-ds a (mk-datashell 5))

@@ -95,9 +95,10 @@
     ;; unwrap the body of the lambda
     (define tfunc (eval (Datashell-op ds)))
     (define data (syntax->datum (Datashell-dataset ds))) ; Datashells are read in as syntaxes
-    (define collected (map-filter-reduce tfunc afunc acc data))
-    collected)
+    (define reduced (map-filter-reduce tfunc afunc acc data))
+    reduced)
 
+  
   ;; ds-map-phase-one: TFunc Datashell -> Datashell
   ;; Maps the given function on the Datashell and returns a new Datashell
   ;; Transformation: lazily evaluated. Compose the given function with the previous functions
@@ -116,6 +117,26 @@
   (define (collect-only ds)
     (ds-reduce-phase-one cons '() ds))
 )
+
+
+;; ds-map-phase-one: TFunc Datashell -> Datashell
+;; Maps the given function on the Datashell and returns a new Datashell
+;; Transformation: lazily evaluated. Compose the given function with the previous functions
+;; but do not evaluated the given function
+;; Example: (ds-map-phase-one add-1 (mk-datashell '(1 2)) -> (Datashell '2 3)
+#;(define-for-syntax (ds-map-phase-one stx)
+  (syntax-parse stx
+    [(f:id ds)
+     #:do [(define f+ (syntax-local-value #'f (thunk (raise-syntax-error 'ds-map-phase-one "argument must be an RSL defined map or predicate" ds-map-phase-one #'f))))
+           (define ds+ (syntax-local-value #'ds (thunk (raise-syntax-error 'ds-map-phase-one "argument must be an RSL Datashell" ds-map-phase-one #'ds))))
+           (unless (Datashell? ds+)
+             (raise-syntax-error 'ds-map-phase-one "argument must be a Datashell" ds-map-phase-one #'ds))
+           (define old (Datashell-op ds+))
+           (define composed (compose-tfunc #`(f #,old)))
+           (define data (Datashell-dataset ds+))
+           (define new-ds (Datashell data composed))]
+     #`#,new-ds]))
+
 
 ;; [Listof Any] -> Datashell
 ;; Create a Datashell from a given list
@@ -155,24 +176,6 @@
      (displayln #'(e ...))
      #'(error "shouldn't have composed this")]))
 
-
-;; ds-map: TFunc Datashell -> Datashell
-;; Maps the given function on the Datashell and returns a new Datashell
-;; Transformation: lazily evaluated. Compose the given function with the previous functions
-;; but do not evaluated the given function
-;; Example: (ds-map add-1 (mk-datashell '(1 2)) -> (Datashell '2 3)
-#;(define-for-syntax (ds-map stx)
-  (syntax-parse stx
-    [(f:id ds)
-     #:do [(define f+ (syntax-local-value #'f (thunk (raise-syntax-error 'ds-map "argument must be an RSL defined map or predicate" ds-map #'f))))
-           (define ds+ (syntax-local-value #'ds (thunk (raise-syntax-error 'ds-map "argument must be an RSL Datashell" ds-map #'ds))))
-           (unless (Datashell? ds+)
-             (raise-syntax-error 'ds-map "argument must be a Datashell" ds-map #'ds))
-           (define old (Datashell-op ds+))
-           (define composed (compose-tfunc #`(f #,old)))
-           (define data (Datashell-dataset ds+))
-           (define new-ds (Datashell data composed))]
-     #`#,new-ds]))
 
 ;; Phase 0
 ;; -----------------------------------------------------------------------------
@@ -296,20 +299,23 @@
   (syntax-parser
     #:datum-literals (mk-datashell ds-map-phase-one)
     [(_ i:id (mk-datashell e))
-     #:do [(define error-msg-ds "argument must be a list or a path to a CSV file!")
+     #:do [(define error-msg-ds "argument must be a Datashell!")
            (unless (or (list? (eval #'e))
                        (string? #'e))
              (raise-syntax-error 'save-ds error-msg-ds #'e))
            (hash-set! rsl-graph (syntax->datum #'i) (eval #'e))]
      #`(define-syntax i '#,(mk-datashell #'i))]
-    [(_ i:id (ds-map f ds))
-     #:do [(define func (syntax-local-value #'f (thunk #'f)))
-           (define datashell (syntax-local-value #'ds (thunk #'ds)))
-           (define mapped (ds-map-phase-one func datashell))]
-     #`(define-syntax i '#,mapped)]
+    [(_ i:id (ds-map tfunc e))
+     #:do [(define error-msg-tfunc "The 1st argument of ds-map must be a function!")
+           (define error-msg-ds "The 2nd argument of ds-map must be an RSL Datashell!")
+           (define tfunc+ (syntax-local-value #'tfunc (thunk (raise-syntax-error 'save-ds error-msg-tfunc #'tfunc))))
+           (define datashell (syntax-local-value #'e (thunk (raise-syntax-error 'save-ds error-msg-ds #'e))))
+           (unless (Datashell? datashell)
+             (raise-syntax-error 'save-ds error-msg-ds #'e))]
+     #`(define-syntax i #,(ds-map-phase-one tfunc+ datashell))]
     [(_ e ...)
      #'(error 'save-ds "save-ds requires an identifier and a Datashell as arguments")]))
-;#`'#,reduced
+
 ;; ds-collect: Datashell -> [List-of Any]
 ;; Collects the data in a Datashell and returns it.
 ;; (Pass user input to phase 1)
