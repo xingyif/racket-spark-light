@@ -24,10 +24,10 @@
  ;; Collects the data in a Datashell, then reduces it with the given function and accumulator.
  ds-reduce
 
- ;; (define-map-func (Id Id) Expr ... (values Expr ...))
+ ;; (define-map-func (Id) Expr ... (values Expr ...))
  define-map-func
 
- ;; (define-filter-pred (Id Id) Expr ... (values Expr ...))
+ ;; (define-filter-pred (Id) Expr ... (values Expr ...))
  define-filter-pred
  
  ;; ds-collect: Datashell -> [Listof Any]

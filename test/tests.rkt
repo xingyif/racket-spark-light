@@ -91,7 +91,7 @@
 
 ;; tfuncs
 (define-filter-pred (less-than-5? num)
-  (if #t (< num 5) #f))
+  (< num 5))
 
 (define-map-func (mult-10 num)
   (* 10 num))
