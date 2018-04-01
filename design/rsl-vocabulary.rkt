@@ -17,8 +17,8 @@ The user is not able to apply any non-DSOperations on DataShell.
 Datashells cannot be mutated, all DSOperations return a new Datashell.
 
 
------DSOperation-----:
-An DSOperation is one of:
+-----Operation-----:
+An Operation is one of:
 - Transformation
 - Action
 
