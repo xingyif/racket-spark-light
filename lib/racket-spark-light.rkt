@@ -200,17 +200,11 @@
            (unless (Datashell? datashell)
              (raise-syntax-error 'ds-map error-msg-ds #'ds))
            ;; the transformed data as a list, result from the phase 1 function
-           (define mapped (ds-map map-evaluated datashell))]
+           (define mapped (ds-map #'(map-evaluated datashell)))]
       #`'#,mapped]
     [(_ f:id ds:id)
-     #:do [(define error-msg-ds "argument must be an RSL Datashell")
-           (define error-msg-f "argument must be a defined map function")
-           (define func-body (thunk #'f))
-           (define datashell (syntax-local-value #'ds (thunk (raise-syntax-error 'ds-collect error-msg-ds #'ds))))
-           (unless (Datashell? datashell)
-             (raise-syntax-error 'ds-map error-msg-ds #'ds))
-           ;; call ds-map in phase 1
-           (define mapped (ds-map func-body datashell))]
+     #:do [;; call ds-map in phase 1
+           (define mapped (ds-map #`(f ds)))]
      #`'#,mapped]))
 ;; ds-reduce: AFunc Any Datashell -> Any
 ;; Reduces the Datashell to a non Datashell type
