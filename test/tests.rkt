@@ -112,9 +112,8 @@
 
 #;(ds-map sub-3-print a2)
 
-(ds-collect abcd2)
-(ds-reduce cons '() abcd2)
-#;(ds-map (lambda (x) (+ x 1)) a2)
+#;(ds-collect abcd2)
+#;(ds-reduce cons '() abcd2)
 
 (check-equal? (ds-collect abcd2) '(20 40))
 (check-equal? (append (ds-collect abcd2) '(5)) (ds-reduce cons (cons 5 '()) abcd2))
@@ -125,3 +124,5 @@
 ;; Nice error! It even points to the issue in this file.
 #;(save-ds l (ds-map less-than-5? less-than-5?))
 
+(save-ds nhs-csv (mk-datashell "nhs.csv"))
+(save-ds nhs2 (ds-map less-than-5? nhs-csv)) 

@@ -42,9 +42,6 @@
 
 (require (for-syntax syntax/parse
                      syntax/kerncase))
-(require ;; graph
-  racket/struct
-  (prefix-in un: racket))
 
 (module+ test (require rackunit))
 
@@ -60,7 +57,8 @@
 
 (begin-for-syntax
 
-  (require racket)
+  (require racket
+           csv-reading)
 
   ;; Debugging tool, to view the graph
   (define (get-graph-internal)
@@ -101,8 +99,7 @@
   ;; collect-only: Datashell -> [Listof Any]
   ;; Collects the data in a Datashell and returns it.
   (define (collect-only ds)
-    (ds-reduce-phase-one cons '() ds))
-)
+    (ds-reduce-phase-one cons '() ds)))
 
 ;; [Listof Any] -> Datashell
 ;; Create a Datashell from a given list
@@ -194,14 +191,14 @@
 (define-syntax ds-map
   (syntax-parser
     [(_ (lambda (arg) body ...) ds)
-      #:do [(define error-msg-ds "The 2nd argument of ds-map must be an RSL Datashell")
+     #:do [(define error-msg-ds "The 2nd argument of ds-map must be an RSL Datashell")
            (define map-evaluated (eval #'(lambda (arg) body ...)))
            (define datashell (syntax-local-value #'ds (thunk (raise-syntax-error 'ds-map error-msg-ds #'ds))))
            (unless (Datashell? datashell)
              (raise-syntax-error 'ds-map error-msg-ds #'ds))
            ;; the transformed data as a list, result from the phase 1 function
            (define mapped (ds-map #'(map-evaluated datashell)))]
-      #`'#,mapped]
+     #`'#,mapped]
     [(_ f:id ds:id)
      #:do [;; call ds-map in phase 1
            (define mapped (ds-map #`(f ds)))]
@@ -276,10 +273,18 @@
 (define-syntax save-ds-top
   (syntax-parser
     #:datum-literals (mk-datashell ds-map)
-    [(_ i:id (mk-datashell e))
+    ;; given a string path
+    [(_ i:id (mk-datashell path:string))
+     #:do [;; Load csv file into hashmap
+           (define data (csv->list (open-input-file (eval #'path))))
+           (hash-set! rsl-graph (syntax->datum #'i) data)]
+     #`(define-syntax i '#,(mk-datashell #'i))]
+    ;; given anything not a string path
+    [(_ i:id (mk-datashell e:expr))
      #:do [(define error-msg-ds "argument must be a list or a path to a CSV file!")
-           (unless (or (list? (eval #'e))
-                       (string? #'e))
+           ;; make sure it's a list
+           (unless (list? (eval #'e))
+             ;; if it's not, invalid
              (raise-syntax-error 'save-ds error-msg-ds #'e))
            (hash-set! rsl-graph (syntax->datum #'i) (eval #'e))]
      #`(define-syntax i '#,(mk-datashell #'i))]
