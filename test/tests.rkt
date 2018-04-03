@@ -25,7 +25,7 @@
 (save-ds abcd (ds-map sub-8 abc)) ; Subtract 8: (4 1)
 
 ;; ------- Collect the data in the Datashell -------
-#;(ds-collect abcd)
+;;(ds-collect abcd)
 
 (check-equal? (ds-collect a) '(5 2))
 (check-equal? (ds-collect ab) '(10 7))
@@ -48,15 +48,17 @@
 (save-ds 15-range-final (ds-map sub-3-print 15-range-middle))
 
 ;; Racket's mapping will print "t0" 15 times, then print "t1" 15 times since it iterates twice.
+(displayln "\nIn Racket:")
 (define 15-range-final-racket  (map (lambda (x) (display "t1,") (- x 3)) (map (lambda (y) (display "t0,") (* 2 y)) (range 15))))
 
 ;; RSL's mapping will print alternating "first func" and "second func" as the functions are merged, and iteration only occurs once
-#;(ds-collect 15-range-final)
+;(ds-collect 15-range-final)
 
-;(check-equal? (ds-collect 15-range-final) '(-1 1 3 5 7 9 11 13 15 17 19 21 23 25 27))
+;(check-equal? (ds-collect 15-range-final) '(-3 -1 1 3 5 7 9 11 13 15 17 19 21 23 25))
 (check-equal? (ds-collect 15-range-final) 15-range-final-racket)
 
-;; Test 3: Mapping small quantities of numbers w/ internal mutation and FILTER
+
+;; ------- Test 3: Mapping small quantities of numbers w/ internal mutation and FILTER -------
 
 ;; tfuncs
 (define-filter-pred (less-than-5? num)
@@ -64,8 +66,6 @@
 
 (define-map-func (mult-10 num)
   (* 10 num))
-
-;; afuncs
 
 (define-filter-pred (multiple-of-20? num)
   (= (modulo num 20) 0))
@@ -87,21 +87,22 @@
 (check-equal? (ds-reduce + (+ 2 3) abcd2) 65)
 (check-equal? (ds-reduce (lambda (x y) (+ x y)) (+ 2 3) abcd2) 65)
 
-;; Read in CSV files
+;; -------- Read in CSV files --------
 ;; Nice error! It even points to the issue in this file.
-#;(save-ds l (ds-map less-than-5? less-than-5?))
+;;(save-ds l (ds-map less-than-5? less-than-5?))
 
 (define-filter-pred (in-2015? item)
   (equal? (car item) "2015"))
 
 (save-ds nhs-csv (mk-datashell "nhs.csv"))
 (save-ds nhs2 (ds-map in-2015? nhs-csv))
-(ds-collect nhs2)
+;; Warning! Be careful commentting this back!
+;;(ds-collect nhs2)
 
 ;; ---------- STATIC ERRORS ----------
 
 ;; ------- Can't use mk-datashell without save-ds -------
-#;(mk-datashell '(5 2))
+;(mk-datashell '(5 2))
 
 ;; ------- Failure Example -------
 ;; ------- Nice error! Static type checking for mk-datashell input type -------
@@ -133,4 +134,4 @@
 ;; BROKEN
 ;; global-1 is not accessible inside the rsl-func's, bad static error when this is uncommented
 ;; each rsl-func name and datashell name is stored as a syntax variable, so it is a phase error
-#;(ds-collect 10-range-final)
+;(ds-collect 10-range-final)
