@@ -149,10 +149,7 @@
 (define-for-syntax (ds-map-phase-one stx)
   (syntax-parse stx
     [(f:id ds)
-     #:do [(define f+ (syntax-local-value #'f (thunk (raise-syntax-error 'ds-map "argument must be an RSL defined map or predicate" ds-map-phase-one #'f))))
-           (define ds+ (syntax-local-value #'ds (thunk (raise-syntax-error 'ds-map "argument must be an RSL Datashell" ds-map-phase-one #'ds))))
-           (unless (Datashell? ds+)
-             (raise-syntax-error 'ds-map "argument must be a Datashell" ds-map-phase-one #'ds))
+     #:do [(define ds+ (syntax-local-value #'ds))
            (define old (Datashell-op ds+))
            (define composed (compose-tfunc #`(f #,old)))
            (define data (Datashell-dataset ds+))
@@ -201,8 +198,12 @@
            (define mapped (ds-map-phase-one #'(map-evaluated datashell)))]
      #`'#,mapped]
     [(_ f:id ds:id)
-     #:do [;; call ds-map in phase 1
-           (define mapped (ds-map-phase-one #`(f ds)))]
+      #:do [(define f+ (syntax-local-value #'f (thunk (raise-syntax-error 'ds-map "argument must be an RSL defined map or predicate" ds-map-phase-one #'f))))
+           (define ds+ (syntax-local-value #'ds (thunk (raise-syntax-error 'ds-map "argument must be an RSL Datashell" ds-map-phase-one #'ds))))
+           (unless (Datashell? ds+)
+             (raise-syntax-error 'ds-map "argument must be a Datashell" ds-map-phase-one #'ds))
+           ;; call ds-map in phase 1
+           (define mapped (ds-map-phase-one #`(f+ ds+)))]
      #`'#,mapped]))
 ;; ds-reduce: AFunc Any Datashell -> Any
 ;; Reduces the Datashell to a non Datashell type
