@@ -183,7 +183,7 @@ Example:
          #:contracts([datashell Datashell?])]{
  Returns a list from the given datashell by applying all the datashell's queued functions and immediatly collecting the results.
  
- @bold{ds-collect} returns a Listof Any.
+ @bold{ds-collect} returns a [Listof Any].
 }
 
 Example:
