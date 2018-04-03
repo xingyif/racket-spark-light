@@ -151,7 +151,11 @@
 (define-for-syntax (ds-map-phase-one stx)
   (syntax-parse stx
     [(f:id ds)
-     #:do [(define ds+ (syntax-local-value #'ds))
+     #:do [(define f+ (syntax-local-value #'f (thunk (raise-syntax-error 'ds-map "argument must be an RSL defined map or predicate" ds-map-phase-one #'f))))
+           (define ds+ (syntax-local-value #'ds))
+           (define error-msg-ds "The 2nd argument of ds-map must be an RSL Datashell")
+           (unless (Datashell? ds+)
+                    (raise-syntax-error 'ds-map error-msg-ds #'ds))
            (define old (Datashell-op ds+))
            (define composed (compose-tfunc #`(f #,old)))
            (define data (Datashell-dataset ds+))
@@ -190,15 +194,6 @@
 ;#:fail-unless (= (eval #'l) 1) "lambda must have 1 arguments in ds-map"
 (define-syntax ds-map
   (syntax-parser
-    [(_ (lambda (arg) body ...) ds)
-     #:do [(define error-msg-ds "The 2nd argument of ds-map must be an RSL Datashell")
-           (define map-evaluated (eval #'(lambda (arg) body ...)))
-           (define datashell (syntax-local-value #'ds (thunk (raise-syntax-error 'ds-map error-msg-ds #'ds))))
-           (unless (Datashell? datashell)
-             (raise-syntax-error 'ds-map error-msg-ds #'ds))
-           ;; the transformed data as a list, result from the phase 1 function
-           (define mapped (ds-map-phase-one #'(map-evaluated datashell)))]
-     #`'#,mapped]
     [(_ f:id ds:id)
       #:do [(define f+ (syntax-local-value #'f (thunk (raise-syntax-error 'ds-map "argument must be an RSL defined map or predicate" ds-map-phase-one #'f))))
            (define ds+ (syntax-local-value #'ds (thunk (raise-syntax-error 'ds-map "argument must be an RSL Datashell" ds-map-phase-one #'ds))))
@@ -207,6 +202,7 @@
            ;; call ds-map in phase 1
            (define mapped (ds-map-phase-one #`(f+ ds+)))]
      #`'#,mapped]))
+
 ;; ds-reduce: AFunc Any Datashell -> Any
 ;; Reduces the Datashell to a non Datashell type
 ;; Action: eagerly evaluated, triggers all transformations stored on the datashell and the actor
@@ -214,11 +210,9 @@
 (define-syntax ds-reduce
   (syntax-parser
     ;; Static checking for lambda literals
-    [(_ (lambda (args ...) body ...) acc:expr ds)
-     #:with l (length (syntax->list #'(args ...)))
-     #:fail-unless (= (eval #'l) 2) "lambda must have 2 arguments in ds-reduce"
+    [(_ (lambda (arg1 arg2) body ...) acc:expr ds)
      #:do [(define error-msg-ds "argument must be an RSL Datashell")
-           (define reduction (eval #'(lambda (args ...) body ...)))
+           (define reduction (eval #'(lambda (arg1 arg2) body ...)))
            (define datashell (syntax-local-value #'ds (thunk (raise-syntax-error 'ds-collect error-msg-ds #'ds))))
            (unless (Datashell? datashell)
              (raise-syntax-error 'ds-collect error-msg-ds #'ds))
@@ -281,20 +275,13 @@
     [(_ i:id (mk-datashell path:string))
      #:do [;; Load csv file into hashmap
            (define error-msg-ds "argument must be a list or a path to a CSV file!")
-           (unless (string? (eval #'path))
-             ;; if it's not, invalid
-             (raise-syntax-error 'save-ds error-msg-ds #'path))
            (define data (csv->list (open-input-file (eval #'path))))
            (hash-set! rsl-graph (syntax->datum #'i) data)]
      #`(define-syntax i '#,(mk-datashell #'i))]
     ;; given anything not a string path
-    [(_ i:id (mk-datashell e:expr))
+    [(_ i:id (mk-datashell (e ...)))
      #:do [(define error-msg-ds "argument must be a list or a path to a CSV file!")
-           ;; make sure it's a list
-           (unless (list? (eval #'e))
-             ;; if it's not, invalid
-             (raise-syntax-error 'save-ds error-msg-ds #'e))
-           (hash-set! rsl-graph (syntax->datum #'i) (eval #'e))]
+           (hash-set! rsl-graph (syntax->datum #'i) (eval #'(e ...)))]
      #`(define-syntax i '#,(mk-datashell #'i))]
     [(_ i:id (ds-map e ...))
      #`(define-syntax i #,(ds-map-phase-one #'(e ...)))]
