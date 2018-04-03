@@ -23,7 +23,7 @@ TExpr		=       Datashell
 		|	Tranformation
 		|	Action
 
-                        ;; TFuncs can only be cconstructed with define-map-func and define-filter-pred
+                        ;; TFuncs can only be constructed with define-map-func and define-filter-pred
 TFunc		=	(transformation (Id) Expr) 
                 =       (pred (Id) Expr) ;; Expr evaluates to a boolean
                         
@@ -50,10 +50,12 @@ Examples:
 ;; Count the number of items in spreadsheet
 (ds-count spreadsheet) ;; TODO
 
-2. Transform a list '(1 2 3) by multiplying each number by 5, then add all the items together
+2. Transform a list '(1 2 3) by multiplying each number by 10, then divide each number by 5, then add all the items together
 (save-ds first-list (mk-datashell (list 1 2 3))
-(define-map-func (mult-5 num) (* num 5))
-(save-ds mapped (ds-map mult-5 first-list))
-(define my-result (ds-reduce + 0 map-list))
-
+(define-map-func (mul-10 num) (* num 10))
+(save-ds mapped-first (ds-map mul-10 first-list))
+(define-map-func (div-5 num) (/ num 5))
+(save-ds mapped-second (ds-map div-5 mapped-first))
+(define my-result (ds-reduce + 0 mapped-second))
+;; return 12
 |#
