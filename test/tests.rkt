@@ -27,25 +27,23 @@
 ;; ------- Can't use mk-datashell without save-ds -------
 ;;(mk-datashell '(5 2))
 
+
+;; ------- Failure Example -------
 ;; ------- Nice error! Static type checking for mk-datashell input type -------
-;; either string for path, or list
-;;(save-ds a (mk-datashell 'h))
-
-
-;(ds-map add-5 a)
-;; Failure Example
 ;; won't work because a mk-datashell only takes a list or a path to a csv file
-;(save-ds a (mk-datashell 5))
 
-;; Collect the data in the Datashell
-#;(ds-collect abcd)
+;;(save-ds a (mk-datashell 'h))
+;;(save-ds a (mk-datashell 5))
+
+;; ------- Collect the data in the Datashell -------
+;;(ds-collect abcd)
 
 (check-equal? (ds-collect a) '(5 2))
 (check-equal? (ds-collect ab) '(10 7))
 (check-equal? (ds-collect abc) '(12 9))
 (check-equal? (ds-collect abcd) '(4 1))
 
-;; Test 2: Mapping small quantities of numbers w/ printing to prove single iteration
+;; ------- Mapping small quantities of numbers w/ printing to prove single iteration -------
 ;; TFuncs
 (define-map-func (sub-3-print num)
   (display "t1 ")

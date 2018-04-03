@@ -41,7 +41,8 @@
 ;; DEPENDENCY
 
 (require (for-syntax syntax/parse
-                     syntax/kerncase))
+                     syntax/kerncase
+                     racket))
 
 (module+ test (require rackunit))
 
@@ -140,18 +141,18 @@
      #'(error "shouldn't have composed this")]))
 
 
-;; ds-map: TFunc Datashell -> Datashell
+;; ds-map-phase-one TFunc Datashell -> Datashell
 ;; Maps the given function on the Datashell and returns a new Datashell
 ;; Transformation: lazily evaluated. Compose the given function with the previous functions
 ;; but do not evaluated the given function
-;; Example: (ds-map add-1 (mk-datashell '(1 2)) -> (Datashell '2 3)
-(define-for-syntax (ds-map stx)
+;; Example: (ds-map-phase-one add-1 (mk-datashell '(1 2)) -> (Datashell '2 3)
+(define-for-syntax (ds-map-phase-one stx)
   (syntax-parse stx
     [(f:id ds)
-     #:do [(define f+ (syntax-local-value #'f (thunk (raise-syntax-error 'ds-map "argument must be an RSL defined map or predicate" ds-map #'f))))
-           (define ds+ (syntax-local-value #'ds (thunk (raise-syntax-error 'ds-map "argument must be an RSL Datashell" ds-map #'ds))))
+     #:do [(define f+ (syntax-local-value #'f (thunk (raise-syntax-error 'ds-map "argument must be an RSL defined map or predicate" ds-map-phase-one #'f))))
+           (define ds+ (syntax-local-value #'ds (thunk (raise-syntax-error 'ds-map "argument must be an RSL Datashell" ds-map-phase-one #'ds))))
            (unless (Datashell? ds+)
-             (raise-syntax-error 'ds-map "argument must be a Datashell" ds-map #'ds))
+             (raise-syntax-error 'ds-map "argument must be a Datashell" ds-map-phase-one #'ds))
            (define old (Datashell-op ds+))
            (define composed (compose-tfunc #`(f #,old)))
            (define data (Datashell-dataset ds+))
@@ -197,11 +198,11 @@
            (unless (Datashell? datashell)
              (raise-syntax-error 'ds-map error-msg-ds #'ds))
            ;; the transformed data as a list, result from the phase 1 function
-           (define mapped (ds-map #'(map-evaluated datashell)))]
+           (define mapped (ds-map-phase-one #'(map-evaluated datashell)))]
      #`'#,mapped]
     [(_ f:id ds:id)
      #:do [;; call ds-map in phase 1
-           (define mapped (ds-map #`(f ds)))]
+           (define mapped (ds-map-phase-one #`(f ds)))]
      #`'#,mapped]))
 ;; ds-reduce: AFunc Any Datashell -> Any
 ;; Reduces the Datashell to a non Datashell type
@@ -293,7 +294,7 @@
            (hash-set! rsl-graph (syntax->datum #'i) (eval #'e))]
      #`(define-syntax i '#,(mk-datashell #'i))]
     [(_ i:id (ds-map e ...))
-     #`(define-syntax i #,(ds-map #'(e ...)))]
+     #`(define-syntax i #,(ds-map-phase-one #'(e ...)))]
     [(_ e ...)
      #'(error 'save-ds "save-ds requires an identifier and a Datashell as arguments")]))
 
