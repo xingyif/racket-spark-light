@@ -1,7 +1,9 @@
 #lang scribble/manual
 
 
-@section{Getting Started}
+@title{Getting Started}
 
-To use RSL, simply type `#lang s-exp "path/to/racket-spark-light.rkt"` at the top of the file.
-With `s-exp`, you can use Racket’s default S-expres­sion reader with an arbi­trary expander.
+You will be able to find RSL at @hyperlink["https://github.com/xingyif/racket-spark-light/"]{racket-spark-light}.
+To install RSL, clone the git repository into the project you want to use it in.
+
+To use RSL, place @bold{#lang s-exp "path/to/racket-spark-light.rkt"} at the top of the file you want to use it in.
