@@ -276,6 +276,10 @@
     ;; given a string path
     [(_ i:id (mk-datashell path:string))
      #:do [;; Load csv file into hashmap
+           (define error-msg-ds "argument must be a list or a path to a CSV file!")
+           (unless (string? (eval #'path))
+             ;; if it's not, invalid
+             (raise-syntax-error 'save-ds error-msg-ds #'path))
            (define data (csv->list (open-input-file (eval #'path))))
            (hash-set! rsl-graph (syntax->datum #'i) data)]
      #`(define-syntax i '#,(mk-datashell #'i))]
