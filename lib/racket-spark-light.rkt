@@ -196,13 +196,8 @@
 (define-syntax ds-map
   (syntax-parser
     [(_ f:id ds:id)
-      #:do [(define f+ (syntax-local-value #'f (thunk (raise-syntax-error 'ds-map "argument must be an RSL defined map or predicate" ds-map-phase-one #'f))))
-           (define ds+ (syntax-local-value #'ds (thunk (raise-syntax-error 'ds-map "argument must be an RSL Datashell" ds-map-phase-one #'ds))))
-           (unless (Datashell? ds+)
-             (raise-syntax-error 'ds-map "argument must be a Datashell" ds-map-phase-one #'ds))
-           ;; call ds-map in phase 1
-           (define mapped (ds-map-phase-one #`(f+ ds+)))]
-     #`'#,mapped]))
+      #:with mapped (ds-map-phase-one #'(f ds))
+     #'mapped]))
 
 ;; ds-reduce: AFunc Any Datashell -> Any
 ;; Reduces the Datashell to a non Datashell type
@@ -216,11 +211,10 @@
            (define reduction (eval #'(lambda (arg1 arg2) body ...)))
            (define datashell (syntax-local-value #'ds (thunk (raise-syntax-error 'ds-collect error-msg-ds #'ds))))
            (unless (Datashell? datashell)
-             (raise-syntax-error 'ds-collect error-msg-ds #'ds))
-           ;; the transformed data as a list, result from the phase 1 function
-           (define reduced (ds-reduce-phase-one reduction (eval #'acc) datashell))]
+             (raise-syntax-error 'ds-collect error-msg-ds #'ds))]
      ;; reconstruct the lambda, pass to the runtime function
-     #`'#,reduced]
+     #:with reduced (ds-reduce-phase-one reduction (eval #'acc) datashell)
+     #`'reduced]
     ;; Identifier for function ; TODO, only works with Racket base functions right now
     [(_ f:id acc ds:id)
      #:do [(define error-msg-ds "argument must be an RSL Datashell")
@@ -228,11 +222,9 @@
            (define reduction (eval #'f))
            (define datashell (syntax-local-value #'ds (thunk (raise-syntax-error 'ds-collect error-msg-ds #'ds))))
            (unless (Datashell? datashell)
-             (raise-syntax-error 'ds-collect error-msg-ds #'ds))
-           ;; the transformed data as a list, result from the phase 1 function
-           (define reduced (ds-reduce-phase-one reduction (eval #'acc) datashell))]
-     ;; pass to the runtime function
-     #`'#,reduced]))
+             (raise-syntax-error 'ds-collect error-msg-ds #'ds))]
+     #:with reduced (ds-reduce-phase-one reduction (eval #'acc) datashell)
+     #`'reduced]))
 
 
 ;; validate-top-level: Syntax -> Syntax
@@ -299,11 +291,10 @@
      #:do [(define error-msg "argument must be an RSL Datashell")
            (define datashell (syntax-local-value #'ds (thunk (raise-syntax-error 'ds-collect error-msg #'ds))))
            (unless (Datashell? datashell)
-             (raise-syntax-error 'ds-collect error-msg #'ds))
-           ;; the transformed data as a list
-           (define collected (collect-only datashell))]
+             (raise-syntax-error 'ds-collect error-msg #'ds))]
      ;; splice the list back into the syntax
-     #`'#,collected]))
+     #:with collected (collect-only datashell)
+     #`'collected]))
 
 ;; -----------------------------------------------------------------------------
 ;; RUNTIME LIB

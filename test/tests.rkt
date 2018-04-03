@@ -96,7 +96,7 @@
 
 (save-ds nhs-csv (mk-datashell "nhs.csv"))
 (save-ds nhs2 (ds-map in-2015? nhs-csv))
-;; Warning! Be careful commentting this back!
+;; Large print statement when uncommented
 ;;(ds-collect nhs2)
 
 ;; ---------- STATIC ERRORS ----------
