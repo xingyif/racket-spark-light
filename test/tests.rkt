@@ -3,8 +3,8 @@
 (require (for-syntax syntax/parse))
 (require rackunit)
 
-;; Test 1: Mapping small quantities of numbers w/ internal mutation
-;; TFuncs
+;; ------- TFuncs -------
+;; Mapping small quantities of numbers w/ internal mutation
 (define-map-func (add-5 y)
   (define x 100)
   (set! x 5)
@@ -18,11 +18,19 @@
   (- z 8))
 
 
-;; Transformation Applications
+;; ------- Transformation Applications -------
 (save-ds a (mk-datashell '(5 2)))
 (save-ds ab (ds-map add-5 a)) ; Add 5: (10 7)
 (save-ds abc (ds-map add-2 ab)) ; Add 2: (12 9)
 (save-ds abcd (ds-map sub-8 abc)) ; Subtract 8: (4 1)
+
+;; ------- Can't use mk-datashell without save-ds -------
+;;(mk-datashell '(5 2))
+
+;; ------- Nice error! Static type checking for mk-datashell input type -------
+;; either string for path, or list
+;;(save-ds a (mk-datashell 'h))
+
 
 ;(ds-map add-5 a)
 ;; Failure Example
@@ -120,8 +128,9 @@
 (check-equal? (ds-reduce + (+ 2 3) abcd2) 65)
 (check-equal? (ds-reduce (lambda (x y) (+ x y)) (+ 2 3) abcd2) 65)
 
+;; Read in CSV files
 ;; Nice error! It even points to the issue in this file.
 #;(save-ds l (ds-map less-than-5? less-than-5?))
 
 (save-ds nhs-csv (mk-datashell "nhs.csv"))
-(save-ds nhs2 (ds-map less-than-5? nhs-csv)) 
+(save-ds nhs2 (ds-map less-than-5? nhs-csv))
