@@ -73,10 +73,12 @@
   (struct rsl-void ())
 
   ;; this graph holds all the data being stored in DS's to avoid multiple DS's needing to allocate
-  ;; memory to the same list currently only works with literal lists
+  ;; memory to the same list; values can only be lists
   (define rsl-graph (make-hash)) 
   
-  ;; map-reduce: TFunc [Listof Any]
+  ;; map-filter-reduce: TFunc (T1 -> T2) T2 [Listof T1] -> T2 
+  ;; Combines the given mapping transformation and reducing action into a single reduction in one iteration 
+  ;; of the data stored in the rsl-graph with the given key. 
   (define (map-filter-reduce tfunc afunc starting-acc data-key)
     (define data (hash-ref rsl-graph data-key))
     ;; create a function that will transform with tfunc then continue the reduction with afunc
