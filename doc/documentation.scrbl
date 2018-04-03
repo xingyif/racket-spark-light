@@ -60,10 +60,10 @@ This section will expain each available feature in RSL.
 
 @section{Creating A Datashell}
 
-A DataShell is an immutable structure that stores user inputted lists of data,
+A @bold{Datashell} is an immutable structure that stores user inputted lists of data,
 on which RSL Operations are performed.
 
-You will able to create a DataShell with the following functions:
+You will able to create a Datashell with the following functions:
 
 
 @defform[(mk-datashell l)
@@ -74,7 +74,7 @@ You will able to create a DataShell with the following functions:
 Example:
 @racketblock[(save-ds a (mk-datashell '(5 2)))]
 
-@para{@bold{Known Bug:} Currently, the user is only able to call @bold{mk-datashell} within @bold{save-ds}.}
+@para{@bold{Feature/Bug:} Currently, the user is only able to call @bold{mk-datashell} within @bold{save-ds}.}
 
 @defform[(mk-datashell path)
          #:contracts([path String?])]{
@@ -84,7 +84,7 @@ Example:
 Example:
 @racketblock[(save-ds a (mk-datashell "../path-to-file.csv"))]
 
-@defform[(save-ds (ds-map func datashell))
+@defform[(save-ds id (ds-map func datashell))
          #:contracts([l list?])]{
  Creates a Datashell from an existing Datashell.
  Note that @bold{ds-map} can only be used with @bold{save-ds}.
@@ -99,15 +99,17 @@ Example:
  (save-ds b (ds-map sub-8 a))]
 
 
-@para{Additionally, all Transformations return a new Datashell.}
+@para{Additionally, all Transformations return one and only one new Datashell.}
 
 @section{Transformations}
 
 @subsection{Defining Transformation Functions}
 
+Transformations are @bold{lazily} evaluated.
+
 A Transformation function provides a mapping from one item to another item.
 
-@defform[(define-map-func (name arg))
+@defform[(define-map-func (name arg) body)
          #:contracts([name id?]
                      [arg expr?])]{
  Creates a transformation function which can be passed into @bold{ds-map}.
@@ -120,7 +122,7 @@ Example:
   (- z 8))
 ]
 
-@defform[(define-filter-pred (name arg))
+@defform[(define-filter-pred (name arg) body)
          #:contracts([name id?]
                      [arg expr?])]{
  Creates a predicate which can be passed into @bold{ds-map} which when executed will filter out all
@@ -137,8 +139,7 @@ Example:
 @subsection{Mapping Transformation Functions}
 
 When called on a Datashell, transformations are queued up for later execution.
-These transformations will not execute until an Action is called on the Datashell. This allow RSL to evaluate all
-transformations applied to the DataShell in one iteration.
+These transformations will not execute until an Action is called on the Datashell. This allow RSL to evaluate all transformations applied to the Datashell in one iteration.
 
 @defform[(ds-map tfunc datashell)
          #:contracts(
@@ -147,7 +148,7 @@ transformations applied to the DataShell in one iteration.
  Creates a new Datashell using the given Datashell mapped with the given function.
  The given procedure is not evaluted until an action is introduced.
 }
-@para{@bold{Known Bug:} Currently, the user is only able to call @bold{ds-map} within @bold{save-ds}.}
+@para{@bold{Feature/Bug:} The user is only able to call @bold{ds-map} within @bold{save-ds}.}
 
 Example:
 @racketblock[
@@ -156,16 +157,20 @@ Example:
 ]
 
 @section{Actions}
+
+Actions are @bold{eagerly} evaluated.
+
 An Action immediatly triggers the evaluation of the datashell's queued transformation(s), and it reduces the transformed dataset into a value to return
 to the user.
 
 @defform[(ds-reduce afunc base datashell)
-         #:contracts([afunc proc?]
+         #:contracts([afunc procedure?]
                      [base Any?]
                      [datashell Datashell?])]{
  Applies the datashell's queued transformations then immediatly evaluates and returns the result of the reduction function on the datashell.
  
- @bold{ds-reduce} returns Any, whatever the afunc returns.
+ The return type of @bold{ds-reduce} can be any except a Datashell.
+ The return type of ds-reduce is the same as the type of @bold{base}, and the return type of @bold{afunc}.
 }
 
 Example:

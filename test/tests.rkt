@@ -18,7 +18,6 @@
   (- z 8))
 
 
-
 ;; Transformation Applications
 (save-ds a (mk-datashell '(5 2)))
 (save-ds ab (ds-map add-5 a)) ; Add 5: (10 7)
