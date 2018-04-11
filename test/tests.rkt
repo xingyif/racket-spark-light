@@ -1,14 +1,53 @@
 #lang s-exp "../lib/racket-spark-light.rkt"
 
+;; to make test macros
 (require (for-syntax syntax/parse))
 (require rackunit)
 
-(save-ds x (mk-datashell '(12 2)))
-(save-ds xy (ds-map add1 x))
-(save-ds xz (ds-map (lambda (i) (+ 1 i)) x))
+(define-rsl-func (add-3 num)
+  (+ num 3))
 
+(define-rsl-func (mult-2 num)
+  (* num 2))
+
+(define-datashell x (mk-datashell '(12 2)))
+(define-datashell xy (ds-map add-3 x))
+(define-datashell xyz (ds-map mult-2 xy))
+
+(define-datashell xz (ds-map (lambda (i) (+ 3 i)) x))
+
+(check-equal? (ds-collect x) '(12 2))
+(check-equal? (ds-collect xy) '(15 5))
+(check-equal? (ds-collect xy) (ds-collect xz))
+(check-equal? (ds-collect xyz) '(30 10))
+
+
+(define-rsl-func (print-1 num)
+  (displayln 1)
+  num)
+
+(define-rsl-func (print-2 num)
+  (displayln 2)
+  num)
+
+(define-datashell a (mk-datashell '(a b c d)))
+(define-datashell ab (ds-map print-1 a))
+(define-datashell abc (ds-map print-2 ab))
+
+(ds-collect abc)
+
+;; check that a basic reduce works
+(define reversed (ds-reduce (lambda (curr acc) (cons curr acc)) '() abc))
+(check-equal? reversed (reverse (ds-collect abc)))
+
+;; we need to stop globally accessible variables maybe
+(define shouldnt-work 5)
+(define reversed-bad (ds-reduce (lambda (curr acc) (cons shouldnt-work acc)) '() abc))
+reversed-bad
+
+#|
 ;; only works if the underlying identifier is a datashell
-(save-ds xz-clone xz)
+(define-datashell xz-clone xz)
 
 (define xy-res (ds-reduce (lambda (x y) (+ x y)) 0 xy))
 (define xz-res (ds-reduce + 0 xz))
@@ -30,27 +69,27 @@
 
 ;; Gives a static error, because save-ds can only be used at the top level
 #;(define (y)
-  (save-ds (mk-datashell '(10 20))))
+  (define-datashell (mk-datashell '(10 20))))
 
 (define-syntax save-datashell
   (syntax-parser
     [(_ e ...)
-     #'(save-ds e ...)]))
+     #'(define-datashell e ...)]))
 
 ;; Gives a static error, because save-ds can only be used at the top level
 #;(define (y-mac)
-  (save-datashell (mk-datashell '(10 20))))
+  (define-datashell (mk-datashell '(10 20))))
 
 ;; Gives a dynamic error, must be a datashell, not a number
-#;(save-ds n 2)
+#;(define-datashell n 2)
 
-(define-rsl (r1 x)
+(define-rsl-func (r1 x)
   (values (+ 1 x)))
 
-(define-rsl (r2 y)
+(define-rsl-func (r2 y)
   (values y))
 
-(compose-rsl r1 r2)
+|#
 
 #|
 
