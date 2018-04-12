@@ -44,7 +44,8 @@
                      syntax/kerncase))
 
 (require   
-  (prefix-in un: racket))
+  (prefix-in un: racket)
+  csv-reading)
 
 (module+ test (require rackunit))
 
@@ -145,10 +146,12 @@
 (define-syntax define-datashell-valid
   (syntax-parser
     #:literals (mk-datashell ds-map ds-reduce)
-    [(_ i:id (mk-datashell e ...))
-     #'(begin (define i (mk-datashell e ...)))]
+    [(_ i:id (mk-datashell path:string))
+     #'(define i (mk-datashell (csv->list (open-input-file path))))]
+    [(_ i:id (mk-datashell e))
+     #'(define i (mk-datashell e))]
     [(_ i:id (ds-map e ...))
-     #'(begin (define i (ds-map e ...)))]
+     #'(define i (ds-map e ...))]
     [(_ i:id e)
      #'(begin (define i e)
               (unless (Datashell? e)

@@ -10,6 +10,7 @@
 (define-rsl-func (mult-2 num)
   (* num 2))
 
+(define-datashell csv (mk-datashell "nhs.csv"))
 (define-datashell x (mk-datashell '(12 2)))
 (define-datashell xy (ds-map add-3 x))
 (define-datashell xyz (ds-map mult-2 xy))
