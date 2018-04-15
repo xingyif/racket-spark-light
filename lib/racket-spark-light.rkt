@@ -216,10 +216,7 @@
        [`(lambda (,f2-arg) ,f2-body ...)
         (tfunc `(lambda (,f2-arg)
                   (let ([,f1-arg (let () ,@f2-body)])
-                    (cond [(and (struct? ,f1-arg)
-                                (symbol=? (vector-ref (struct->vector ,f1-arg) 0)
-                                          'struct:rsl-void))
-                           ,f1-arg]
+                    (cond [(rsl-void? ,f1-arg) ,f1-arg]
                           [else ,@f1-body]))))]
        ;; second function is invalid
        [other (throw-error)])]

@@ -56,9 +56,9 @@ reversed-bad
 (define-rsl-func (only-evens checking)
   (= (modulo checking 2) 0))
 
-(define-datashell evens (ds-filter only-evens (mk-datashell '(1 2 3 4 5))))
+(define-datashell evens-plus-3 (ds-map add-3 (ds-filter only-evens (mk-datashell '(1 2 3 4 5)))))
 
-(check-equal? (ds-collect evens) '(2 4))
+(check-equal? (ds-collect evens-plus-3) '(5 7))
 
 (define-datashell csv (mk-datashell "nhs.csv"))
 (check-equal? (ds-count csv) 15029)
