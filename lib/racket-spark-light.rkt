@@ -6,11 +6,7 @@
 ;; API
 (provide
  ;; We want to provide the full racket langauge
- (except-out (all-from-out racket)
-             lambda
-             #%module-begin)
- (rename-out [rsl-lambda lambda]
-             [rsl-module-begin #%module-begin])
+ (all-from-out racket)
  
  ;; ds-map: TFunc Datashell -> Datashell
  ;; Creates a new Datashell with the old Datashell mapped with the given function.
@@ -35,10 +31,6 @@
  ;; ds-count: Datashell -> Number
  ;; Counts the number of items in the datashell (after transformations and filters)
  ds-count
- 
- ;; (define-datashell Id Datashell)
- ;; EFFECTS: Binds the Datashell to the given identifier in the global scope. Must be used at the top-level.
- define-datashell
 
  ;; (define-rsl (Id Id) Expr ...)
  ;; EFFECTS: 
@@ -64,36 +56,6 @@
 ;; -----------------------------------------------------------------------------
 ;; SYNTAX (compile time functions)
 
-(define-syntax rsl-module-begin
-  (syntax-parser
-    [(_ e ...)
-     #'(#%module-begin (validate-top-level e) ...)]))
-
-;; rsl-lambda: Procedure -> Procedure
-;; Example: (rsl-lambda (arg ...) body body-more ...)
-;; RSL lambda is currently regular lambda, may not be needed
-(define-syntax rsl-lambda
-  (syntax-parser
-    ;; Regular lambda, not compatible with RSL
-    [(_ e ...)
-     #'(lambda e ...)]))
-
-;; validate-top-level: Syntax -> Syntax
-;; Validates top-level define-datashell's
-(define-syntax validate-top-level
-  (syntax-parser
-    #:literals (define-datashell)
-    [(_ (define-datashell e ...))
-     #'(define-datashell-valid e ...)]
-    [(_ e)
-     (define f (local-expand #'e (syntax-local-context) #f))
-     (syntax-parse f 
-       #:literals (define-datashell)
-       [(define-datashell args ...)
-        #'(define-datashell-valid args ...)]
-       [other
-        #'other])]))
-
 ;; ds-map: TFunc Datashell -> Datashell
 ;; Maps the given function on the Datashell and returns a new Datashell
 ;; Transformation: lazily evaluated. Compose the given function with the previous functions
@@ -101,14 +63,16 @@
 ;; Example: (ds-map (lambda (x) (+ 1 x)) (mk-datashell '(1 2)) -> (Datashell '2 3)
 (define-syntax (ds-map stx)
   (syntax-parse stx
-    #:literals (rsl-lambda)
     ;; Static checking for lambda literals
     [(_ (lambda (arg1) body ...) ds)
      ;; reconstruct lambda and pass to the runtime function
      #'(ds-map-func '(lambda (arg1) body ...) ds)]
     [(_ f:id ds)
      ;; pass to the runtime function
-     #'(ds-map-saved-func f ds)]))
+     #'(ds-map-saved-func f ds)]
+    [(this e ...)
+     #:do [(raise-syntax-error 'ds-map "wrong" #'this)]
+     #'(error 'ds-map "wrong")]))
 
 ;; ds-map: TFunc Datashell -> Datashell
 ;; Maps the given function on the Datashell and returns a new Datashell
@@ -117,7 +81,6 @@
 ;; Example: (ds-map (lambda (x) (+ 1 x)) (mk-datashell '(1 2)) -> (Datashell '2 3)
 (define-syntax (ds-filter stx)
   (syntax-parse stx
-    #:literals (rsl-lambda)
     ;; Static checking for lambda literals
     [(_ (lambda (arg1) body ...) ds)
      ;; reconstruct lambda and pass to the runtime function
@@ -132,7 +95,6 @@
 ;; apply the final composed function on the given datashell and return the result
 (define-syntax ds-reduce
   (syntax-parser
-    #:literals (rsl-lambda)
     ;; Static checking for lambda literals
     [(_ (lambda (arg1 arg2) body ...) acc:expr ds)
      ;; reconstruct the lambda, pass to the runtime function
@@ -144,46 +106,38 @@
 ;; define-rsl: String Any -> Any
 ;; (define-rsl (x x) Expr ... (values Expr ...))
 ;; Creates a TFunc, given name, one and only one argument, and body of the TFunc
-(define-syntax define-rsl-func
-  (syntax-parser
+(define-syntax (define-rsl-func stx)
+  (syntax-parse stx
     #:literals (values)
     [(_ (name:id arg1:id) e ...)
-     #'(define name (tfunc '(lambda (arg1) e ...)))]))
-
-;; define-datashell: Id Datashell -> Void
-;; EFFECTS: Always throws an error, see define-datashell-valid for the valid macro
-(define-syntax define-datashell
-  (syntax-parser
+     #'(begin
+         ;; we have this throwaway lambda to trick DrRacket into showing arrows
+         ;; we void it to prevent it from being shown at the top level
+         (void (lambda (arg1) e ...))
+         ;; the actual saving of the func name for use
+         (define name (tfunc '(lambda (arg1) e ...))))]
+    [(_ (name:id arg1:id arg-bad:id arg-bad-rest ...) e2 ...)
+     #:do [(raise-syntax-error 'define-rsl-func "too many arguments" #'arg-bad)]
+     #'(error 'define-rsl-func)]
     [(_ e ...)
-     #:fail-unless #f "define-datashell may only be used at the top level"
-     #'(error 'define-datashell "define-datashell may only be used at the top level")]))
+     #:do [(raise-syntax-error 'define-rsl-func "incorrect use of define-rsl-func" stx)]
+     #'(error 'define-rsl-func)]))
 
-;; define-datashell-valid: String Datashell -> Void
-;; EFFECTS: Binds the Datashell to the given identifier in the global scope. Must be used at the top-level.
-(define-syntax (define-datashell-valid stx)
+(define-syntax (mk-datashell stx)
   (syntax-parse stx
-    #:literals (mk-datashell ds-map ds-reduce)
-    [(_ i:id (mk-datashell path:string))
-     #'(define i (mk-datashell (csv->list (open-input-file path))))]
-    [(_ i:id (mk-datashell e))
-     #'(define i (mk-datashell e))]
-    [(_ i:id (ds-map e ...))
-     #'(define i (ds-map e ...))]
-    [(_ i:id (ds-filter e ...))
-     #'(define i (ds-filter e ...))]
-    [(_ e)
-     #:do [(raise-syntax-error 'define-datashell "requires an identifier and a Datashell as arguments" #'e)]
-     #'(error 'define-datashell "define-datashell requires an identifier and a Datashell as arguments")]
-    [(_ e e2 ...)
-     #:do [(raise-syntax-error 'define-datashell "requires an identifier and a Datashell as arguments" #'e)]
-     #'(error 'define-datashell "define-datashell requires an identifier and a Datashell as arguments")]))
-
+    [(_ path:string)
+     #'(mk-datashell-func (csv->list (open-input-file path)))]
+    [(_ data)
+     #'(mk-datashell-func data)]
+    [(this e ...)
+     #:do [(raise-syntax-error 'mk-datashell "incorrect arguments" #'this)]
+     #'(error 'mk-datashell "incorrect arguments")]))
 ;; -----------------------------------------------------------------------------
 ;; RUNTIME LIB
 
 ;; [Listof Any] -> Datashell
 ;; Create a Datashell from a given list
-(define (mk-datashell data-list)
+(define (mk-datashell-func data-list)
   (if (list? data-list)
       (Datashell data-list (tfunc '(lambda (any) any)))
       (error 'mk-datashell "First arg must be a list")))

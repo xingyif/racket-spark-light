@@ -1,7 +1,6 @@
 #lang s-exp "../lib/racket-spark-light.rkt"
 
 ;; to make test macros
-(require (for-syntax syntax/parse))
 (require rackunit)
 
 (define-rsl-func (add-3 num)
@@ -10,11 +9,11 @@
 (define-rsl-func (mult-2 num)
   (* num 2))
 
-(define-datashell x (mk-datashell '(12 2)))
-(define-datashell xy (ds-map add-3 x))
-(define-datashell xyz (ds-map mult-2 xy))
+(define x (mk-datashell '(12 2)))
+(define xy (ds-map add-3 x))
+(define xyz (ds-map mult-2 xy))
 
-(define-datashell xz (ds-map (lambda (i) (+ 3 i)) x))
+(define xz (ds-map (lambda (i) (+ 3 i)) x))
 
 (check-equal? (ds-collect x) '(12 2))
 (check-equal? (ds-collect xy) '(15 5))
@@ -31,9 +30,9 @@
   (display " ")
   num)
 
-(define-datashell a (mk-datashell '(a b c d)))
-(define-datashell ab (ds-map print-1 a))
-(define-datashell abc (ds-map print-2 ab))
+(define a (mk-datashell '(a b c d)))
+(define ab (ds-map print-1 a))
+(define abc (ds-map print-2 ab))
 
 ;; this will print 
 (check-equal? (ds-collect abc) '(a b c d))
@@ -50,15 +49,15 @@ reversed-bad
 (define-rsl-func (filter-b to-check)
   (not (symbol=? to-check 'b)))
 
-(define-datashell a-filtered (ds-filter filter-b a))
-(ds-collect a-filtered)
+(define filter-out-b (ds-filter filter-b a))
+(check-equal? (ds-collect filter-out-b) '(a c d))
 
 (define-rsl-func (only-evens checking)
   (= (modulo checking 2) 0))
 
-(define-datashell evens-plus-3 (ds-map add-3 (ds-filter only-evens (mk-datashell '(1 2 3 4 5)))))
-
+(define evens-plus-3 (ds-map add-3 (ds-filter only-evens (mk-datashell '(1 2 3 4 5)))))
 (check-equal? (ds-collect evens-plus-3) '(5 7))
 
-(define-datashell csv (mk-datashell "nhs.csv"))
+(define csv (mk-datashell "nhs.csv"))
 (check-equal? (ds-count csv) 15029)
+
