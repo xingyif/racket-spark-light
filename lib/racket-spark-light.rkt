@@ -16,6 +16,8 @@
  ;; Creates a new Datashell with the old Datashell mapped with the given function.
  ds-map
 
+ ;; ds-map: TFunc Datashell -> Datashell
+ ;; Creates a new Datashell with the old Datashell mapped with the given function.
  ds-filter
  
  ;; ds-reduce: AFunc Any Datashell -> Any
@@ -29,12 +31,17 @@
  ;; ds-collect: Datashell -> [Listof Any]
  ;; Collects the data in a Datashell and returns it.
  ds-collect
+
+ ;; ds-count: Datashell -> Number
+ ;; Counts the number of items in the datashell (after transformations and filters)
+ ds-count
  
- ;; define-datashell: Id Datashell -> Void
+ ;; (define-datashell Id Datashell)
  ;; EFFECTS: Binds the Datashell to the given identifier in the global scope. Must be used at the top-level.
  define-datashell
 
- ;; (define-rsl (x x) Expr ... (values Expr ...))
+ ;; (define-rsl (Id Id) Expr ...)
+ ;; EFFECTS: 
  define-rsl-func)
 
 ;; ---------------------------------------------------------------------------------------------------
@@ -48,6 +55,8 @@
   csv-reading)
 
 (module+ test (require rackunit))
+
+(define-namespace-anchor rsl)
 
 ;; ---------------------------------------------------------------------------------------------------
 ;; IMPLEMENTATION
@@ -107,7 +116,15 @@
 ;; but do not evaluated the given function
 ;; Example: (ds-map (lambda (x) (+ 1 x)) (mk-datashell '(1 2)) -> (Datashell '2 3)
 (define-syntax (ds-filter stx)
-  (raise-syntax-error 'ds-filter "not implemented"))
+  (syntax-parse stx
+    #:literals (rsl-lambda)
+    ;; Static checking for lambda literals
+    [(_ (lambda (arg1) body ...) ds)
+     ;; reconstruct lambda and pass to the runtime function
+     #'(ds-filter-func '(lambda (arg1) body ...) ds)]
+    [(_ f:id ds)
+     ;; pass to the runtime function
+     #'(ds-filter-saved-func f ds)]))
 
 ;; ds-reduce: AFunc Any Datashell -> Any
 ;; Reduces the Datashell to a non Datashell type
@@ -143,8 +160,8 @@
 
 ;; define-datashell-valid: String Datashell -> Void
 ;; EFFECTS: Binds the Datashell to the given identifier in the global scope. Must be used at the top-level.
-(define-syntax define-datashell-valid
-  (syntax-parser
+(define-syntax (define-datashell-valid stx)
+  (syntax-parse stx
     #:literals (mk-datashell ds-map ds-reduce)
     [(_ i:id (mk-datashell path:string))
      #'(define i (mk-datashell (csv->list (open-input-file path))))]
@@ -152,12 +169,13 @@
      #'(define i (mk-datashell e))]
     [(_ i:id (ds-map e ...))
      #'(define i (ds-map e ...))]
-    [(_ i:id e)
-     #'(begin (define i e)
-              (unless (Datashell? e)
-                ;; TODO better error, make it point to this place
-                (error 'define-datashell-valid "requires an identifier and a Datashell as arguments")))]
-    [(_ e ...)
+    [(_ i:id (ds-filter e ...))
+     #'(define i (ds-filter e ...))]
+    [(_ e)
+     #:do [(raise-syntax-error 'define-datashell "requires an identifier and a Datashell as arguments" #'e)]
+     #'(error 'define-datashell "define-datashell requires an identifier and a Datashell as arguments")]
+    [(_ e e2 ...)
+     #:do [(raise-syntax-error 'define-datashell "requires an identifier and a Datashell as arguments" #'e)]
      #'(error 'define-datashell "define-datashell requires an identifier and a Datashell as arguments")]))
 
 ;; -----------------------------------------------------------------------------
@@ -178,13 +196,12 @@
 ;; ds-collect: Datashell -> [Listof Any]
 ;; Collects the data in a Datashell and returns it.
 (define (ds-collect ds)
-  ;; apply composed function to the stored list, then return the list
-  (define composed-datum (tfunc-form (Datashell-op ds)))
-  ;; TODO, is there actually a better way to evaluate a symbol?
-  ;; This is evaluated at runtime and requires no outside information, so it feels fine...
-  (define composed-function (eval composed-datum (module->namespace 'racket)))
-  (define mapped (map composed-function (Datashell-dataset ds)))
-  mapped)
+  (ds-reduce-func cons '() ds))
+
+(define (to-pred-func datum1)
+  (match datum1
+    [`(lambda (,f1-arg) ,f1-body ...)
+     `(lambda (,f1-arg) (if ((lambda (,f1-arg) ,@f1-body) ,f1-arg) ,f1-arg (rsl-void)))]))
 
 ;; rsl-compose Symbol Symbol -> Symbol
 ;; compose two functions represented as symbols
@@ -198,8 +215,12 @@
      (match datum2
        [`(lambda (,f2-arg) ,f2-body ...)
         (tfunc `(lambda (,f2-arg)
-           (let ([,f1-arg (let () ,@f2-body)])
-             ,@f1-body)))]
+                  (let ([,f1-arg (let () ,@f2-body)])
+                    (cond [(and (struct? ,f1-arg)
+                                (symbol=? (vector-ref (struct->vector ,f1-arg) 0)
+                                          'struct:rsl-void))
+                           ,f1-arg]
+                          [else ,@f1-body]))))]
        ;; second function is invalid
        [other (throw-error)])]
     ;; first function is invalid
@@ -210,10 +231,21 @@
 (define (ds-map-func tfunc-datum ds)
   (Datashell (Datashell-dataset ds) (rsl-compose-to-tfunc tfunc-datum (tfunc-form (Datashell-op ds)))))
 
+;; ds-map-func: TFunc Datashell -> Datashell
+;; Queues up a mapping to later be applied to a Datashell's data.
+(define (ds-filter-func tfunc-datum ds)
+  (Datashell (Datashell-dataset ds) (rsl-compose-to-tfunc (to-pred-func tfunc-datum) (tfunc-form (Datashell-op ds)))))
+
 ;; check that the variable stores a tfunc and pass it along
 (define (ds-map-saved-func func ds)
   (if (tfunc? func)
       (ds-map-func (tfunc-form func) ds)
+      (error 'ds-map "argument is not a valid rsl procedure")))
+
+;; check that the variable stores a tfunc and pass it along
+(define (ds-filter-saved-func func ds)
+  (if (tfunc? func)
+      (ds-filter-func (tfunc-form func) ds)
       (error 'ds-map "argument is not a valid rsl procedure")))
 
 ;; ds-reduce-func: AFunc Any Datashell -> Any
@@ -224,22 +256,19 @@
          (error 'ds-reduce "Invalid reduce function, must take 2 arguments")]
         [(not (Datashell? ds))
          (error 'ds-reduce "Invalid second argument, should be a Datashell")]
-        [else (foldl afunc acc (ds-collect ds))]))
+        [else (define composed-datum (tfunc-form (Datashell-op ds)))
+              ;; TODO, is there actually a better way to evaluate a symbol?
+              ;; This is evaluated at runtime and requires no outside information, so it feels fine...
+              (define ns (namespace-anchor->namespace rsl))
+              (define composed-tfunc (eval composed-datum ns))
+              (define (tfunc-filter current-val acc)
+                (let ([transformed (composed-tfunc current-val)])
+                  (cond [(rsl-void? transformed) acc] ; we've filtered it out, skip
+                        [else (afunc transformed acc)])))
+              (foldr tfunc-filter acc (Datashell-dataset ds))]))
 
-;; ignore-rsl-void
-;; Takes an item and the function to apply to it, calls the function
-;; if the item isn't an rsl-void
-(define (ignore-rsl-void item callback)
-  (if (rsl-void? item)
-      item
-      (callback item)))
-
-;; filter-out
-;; Checks an item against a predicate and returns it if true or the rsl-void if false
-(define (filter-out item pred)
-  (if (pred item)
-      item
-      (rsl-void)))
+(define (ds-count ds)
+  (ds-reduce-func (lambda (curr acc) (+ 1 acc)) 0 ds))
 
 ;; apply-tfunc: TFunc -> Error
 ;; TFuncs should not be applied, but we want them to be funcs so they appear
