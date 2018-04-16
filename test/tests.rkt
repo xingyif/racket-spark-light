@@ -1,5 +1,8 @@
 #lang s-exp "../lib/racket-spark-light.rkt"
-
+#| The following will also work. RSL is usable as a library.
+#lang racket
+(require "../lib/racket-spark-light.rkt"
+|#
 ;; to make test macros
 (require rackunit)
 
@@ -57,7 +60,10 @@ reversed-bad
 
 (define evens-plus-3 (ds-map add-3 (ds-filter only-evens (mk-datashell '(1 2 3 4 5)))))
 (check-equal? (ds-collect evens-plus-3) '(5 7))
+(check-equal? (ds-take-n (mk-datashell '(1 3 6 8 0 193)) 3) '(1 3 6))
 
 (define csv (mk-datashell "nhs.csv"))
 (check-equal? (ds-count csv) 15029)
+(check-equal? (length (ds-take-n csv 1000)) 1000)
+
 

@@ -6,7 +6,7 @@
 This section will expain each available feature in RSL.
 
 
-@section{Grammer}
+@section{Grammar}
 
 @(racketgrammar*
 
@@ -19,25 +19,20 @@ This section will expain each available feature in RSL.
 
   [Definition
    (define Id RExpr)
-   (define-map-func (Id Id) RExpr)
-   (define-filter-pred (Id Id) RExpr)
-   (save-ds Id Datashell)]
+   (define-rsl-func (Id Id) RExpr)]
 
   [Expr
    RExpr
    TExpr]
 
-  [RExpr
-   "Racket expressions"]
+  [RExpr RacketExpressions]
 
   [TExpr
    Datashell
    Transformation
-   Action]
+   Reduction]
 
-  [TFunc
-   (transformation (Id) Expr)
-   (pred (Id) Expr)]
+  [TFunc Id] ;; that references a TFunc defined with define-rsl-func
 
   [AFunc
    (lambda (Id Id) Expr)]
@@ -53,9 +48,13 @@ This section will expain each available feature in RSL.
   [Transformation
    (ds-map TFunc DataShell)]
 
-  [Action
+  [Reduction
    (ds-reduce AFunc Expr Datashell)
-   (ds-collect Datashell)])
+   (ds-collect Datashell)
+   (ds-count Datashell)
+   (ds-take-n Datashell num)])
+
+A RacketExpression is any expression valid in #lang racket.
 
 
 @section{Creating A Datashell}
@@ -72,9 +71,7 @@ You will able to create a Datashell with the following functions:
 }
 
 Example:
-@racketblock[(save-ds a (mk-datashell '(5 2)))]
-
-@para{@bold{Feature/Bug:} Currently, the user is only able to call @bold{mk-datashell} within @bold{save-ds}.}
+@racketblock[(define a (mk-datashell '(5 2)))]
 
 @defform[(mk-datashell path)
          #:contracts([path String?])]{
@@ -82,89 +79,64 @@ Example:
 }
 
 Example:
-@racketblock[(save-ds a (mk-datashell "../path-to-file.csv"))]
+@racketblock[(define csv-a (mk-datashell "../path-to-file.csv"))]
 
-@defform[(save-ds id (ds-map func datashell))
-         #:contracts([l list?])]{
- Creates a Datashell from an existing Datashell.
- Note that @bold{ds-map} can only be used with @bold{save-ds}.
- @bold{ds-map} will be introduced in the @bold{Transformation} sections.
-}
-
-Example:
-@racketblock[
- (define-map-func (sub-8 z)
-   (- z 8))
-
- (save-ds b (ds-map sub-8 a))]
-
-
-@para{Additionally, all Transformations return one and only one new Datashell.}
+@para{All Transformation Functions (TFuncs) take one input, and have one output}
 
 @section{Transformations}
 
 @subsection{Defining Transformation Functions}
 
-Transformations are @bold{lazily} evaluated.
+Transformations onto a Datashell are @bold{lazily} evaluated.
 
 A Transformation function provides a mapping from one item to another item.
 
-@defform[(define-map-func (name arg) body)
-         #:contracts([name id?]
-                     [arg expr?])]{
- Creates a transformation function which can be passed into @bold{ds-map}.
- Note that @bold{define-map-func} only takes one input argument and produces one output.
+@defform[(define-rsl-func (name arg) body)
+         #:contracts([name Id?]
+                     [arg Id?]
+                     [body Expr?])]{
+ Creates a transformation function which can be passed into @bold{ds-map} or @bold{ds-filter}.
+ Note again that @bold{define-map-func} only takes one input argument and produces one output.
+ @para{@bold{Effects (such as print statements) will not occur until the Datashell this TFunc is
+  applied to is passed to a Reduction.}}
 }
 
 Example:
 @racketblock[
-(define-map-func (sub-8 z)
-  (- z 8))
-]
-
-@defform[(define-filter-pred (name arg) body)
-         #:contracts([name id?]
-                     [arg expr?])]{
- Creates a predicate which can be passed into @bold{ds-map} which when executed will filter out all
-                                              items which do not pass the predicate.
- Note that @bold{define-filter-pred} only takes one input argument and produces a boolean.
-}
-
-Example:
-@racketblock[
-(define-filter-pred (less-than-5? num)
-  (< num 5))
+ (define-rsl-func (sub-8 z)
+   (- z 8))
+ (define-rsl-func (is-even num)
+   (= (modulo num 2) 0))
 ]
 
 @subsection{Mapping Transformation Functions}
 
 When called on a Datashell, transformations are queued up for later execution.
-These transformations will not execute until an Action is called on the Datashell. This allow RSL to evaluate all transformations applied to the Datashell in one iteration.
+These transformations will not execute until a Reduction is called on the Datashell.
+This allow RSL to evaluate all transformations applied to the Datashell in one iteration.
 
 @defform[(ds-map tfunc datashell)
-         #:contracts(
-                     [tfunc (or id? lambda?)]
+         #:contracts([tfunc tfunc?]
                      [datashell Datashell?])]{
  Creates a new Datashell using the given Datashell mapped with the given function.
- The given procedure is not evaluted until an action is introduced.
+ The given procedure is not evaluated until a reduction is executed.
 }
-@para{@bold{Feature/Bug:} The user is only able to call @bold{ds-map} within @bold{save-ds}.}
 
 Example:
 @racketblock[
- (save-ds a (mk-datashell '(5 2)))
- (save-ds ab (ds-map add-5 a))
-]
+ (define-rsl-func (sub-8 z)
+   (- z 8))
 
-@section{Actions}
+ (define b (ds-map sub-8 (mk-datashell '(50 20 49))))]
+@section{Reductions/Actions}
 
-Actions are @bold{eagerly} evaluated.
+Reductions are @bold{eagerly} evaluated.
 
-An Action immediatly triggers the evaluation of the datashell's queued transformation(s), and it reduces the transformed dataset into a value to return
+A reduction immediatly triggers the evaluation of the datashell's queued transformation(s), and it reduces the transformed dataset into a value to return
 to the user.
 
 @defform[(ds-reduce afunc base datashell)
-         #:contracts([afunc procedure?]
+         #:contracts([afunc Procedure?]
                      [base Any?]
                      [datashell Datashell?])]{
  Applies the datashell's queued transformations then immediatly evaluates and returns the result of the reduction function on the datashell.
@@ -175,9 +147,13 @@ to the user.
 
 Example:
 @racketblock[
- (save-ds a (mk-datashell '(1 2 3 4 5 6 7 8 9 10)))
+ (define a (mk-datashell '(1 2 3 4 5 6 7 8 9 10)))
  (ds-reduce + 0 a)
+ > 55
 ]
+
+@subsection{Library Reductions}
+
 
 @defform[(ds-collect datashell)
          #:contracts([datashell Datashell?])]{
@@ -188,12 +164,40 @@ Example:
 
 Example:
 @racketblock[
- (save-ds a2 (mk-datashell '(1 2 3 4 5 6 7 8 9 10)))
- (save-ds ab2 (ds-map less-than-5? a2)) 
- (save-ds abc2 (ds-map mult-10 ab2))
- (save-ds abcd2 (ds-map multiple-of-20? abc2))
+ (define a2 (ds-filter mult-10 (ds-map less-than-5? (mk-datashell '(1 2 3 4 5 6 7 8 9 10)))))
+ (define abcd2 (ds-filter multiple-of-20? a2))
 
  (ds-collect abcd2)
  > (list 20 40)
 ]
-The example above will return all functions applied above: 
+
+@defform[(ds-count datashell)
+         #:contracts([datashell Datashell?])]{
+ Counts the number of items in the list after all transformations and filters have been applied.
+ 
+ @bold{ds-collect} returns a Number.
+}
+
+Example:
+@racketblock[
+ (define a2 (ds-map mult-10 (ds-filter less-than-5? (mk-datashell '(1 2 3 4 5 6 7 8 9 10)))))
+ (define abcd2 (ds-filter multiple-of-20? a2))
+
+ (ds-count abcd2)
+ > 2
+]
+
+@defform[(ds-take-n datashell num)
+         #:contracts([datashell Datashell?]
+                     [num Integer?])]{
+ Gets the first n items in the list after all transformations and filters have been applied.
+ 
+ @bold{ds-collect} returns a [Listof Any] of at most n items.
+}
+
+Example:
+@racketblock[
+ (define a2 (ds-filter even-num? (ds-map mult-5 (mk-datashell '(1 2 3 4 5 6 7 8 9 10)))))
+ (ds-take-n abcd2 3)
+ > '(10 20 30)
+]

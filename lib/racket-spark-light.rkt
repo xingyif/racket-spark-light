@@ -7,6 +7,10 @@
 (provide
  ;; We want to provide the full racket langauge
  (all-from-out racket)
+
+ ;; (define-rsl (Id Id) Expr ...)
+ ;; EFFECTS: 
+ define-rsl-func
  
  ;; ds-map: TFunc Datashell -> Datashell
  ;; Creates a new Datashell with the old Datashell mapped with the given function.
@@ -32,9 +36,9 @@
  ;; Counts the number of items in the datashell (after transformations and filters)
  (rename-out [ds-count-macro ds-count])
 
- ;; (define-rsl (Id Id) Expr ...)
- ;; EFFECTS: 
- define-rsl-func)
+ ;; ds-take-n: Datashell Number -> [Listof Any]
+ ;; Return the first n items in the post-transformed and filtered list
+ (rename-out [ds-take-n-macro ds-take-n]))
 
 ;; ---------------------------------------------------------------------------------------------------
 ;; DEPENDENCY
@@ -160,6 +164,20 @@
     [(this e ...)
      #:do [(raise-syntax-error 'ds-count "incorrect number of arguments" #'this)]
      #'(error 'ds-count "incorrect number of arguments")]))
+
+;; (ds-take-n-macro Datashell Integer)
+(define-syntax (ds-take-n-macro stx)
+  (syntax-parse stx
+    [:id
+     #'ds-take-n]
+    [(_ datashell num:number)
+     #'(ds-take-n datashell num)]
+    [(this datashell num)
+     #:do [(raise-syntax-error 'ds-take-n "second argument must be a number representing the upper bound" #'this)]
+     #'(error 'ds-take-n "incorrect number of arguments")]
+    [(this e ...)
+     #:do [(raise-syntax-error 'ds-take-n "incorrect number of arguments" #'this)]
+     #'(error 'ds-take-n "incorrect number of arguments")]))
 ;; -----------------------------------------------------------------------------
 ;; RUNTIME LIB
 
@@ -241,7 +259,7 @@
                         [else (afunc transformed acc)])))
               (foldr tfunc-filter acc (Datashell-dataset ds))]))
 
-;; ds-couunt: Datashell -> Number
+;; ds-count: Datashell -> Number
 ;; Counts the number of items in a datashell after transformations and filters
 (define (ds-count ds)
   (ds-reduce-func (lambda (curr acc) (+ 1 acc)) 0 ds))
@@ -250,6 +268,11 @@
 ;; Collects the data in a Datashell and returns it.
 (define (ds-collect ds)
   (ds-reduce-func cons '() ds))
+
+;; ds-take-n: Datashell Number -> [Listof Any]
+;; Return the first n items in the post-transformed and filtered list
+(define (ds-take-n ds num)
+  (take (ds-collect ds) num))
 
 ;; (tfunc Symbol)
 ;; TFunc holds the datum for an rsl-func
