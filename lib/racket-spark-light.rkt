@@ -22,15 +22,15 @@
  
  ;; mk-datashell: [Listof Any] -> Datashell
  ;; Creates a Datashell data structure from a list of items.
- mk-datashell
+ (rename-out [mk-datashell-macro mk-datashell])
  
  ;; ds-collect: Datashell -> [Listof Any]
  ;; Collects the data in a Datashell and returns it.
- ds-collect
+ (rename-out [ds-collect-macro ds-collect])
 
  ;; ds-count: Datashell -> Number
  ;; Counts the number of items in the datashell (after transformations and filters)
- ds-count
+ (rename-out [ds-count-macro ds-count])
 
  ;; (define-rsl (Id Id) Expr ...)
  ;; EFFECTS: 
@@ -71,8 +71,8 @@
      ;; pass to the runtime function
      #'(ds-map-saved-func f ds)]
     [(this e ...)
-     #:do [(raise-syntax-error 'ds-map "wrong" #'this)]
-     #'(error 'ds-map "wrong")]))
+     #:do [(raise-syntax-error 'ds-map "incorrect number of arguments" #'this)]
+     #'(error 'ds-map "incorrect number of arguments")]))
 
 ;; ds-map: TFunc Datashell -> Datashell
 ;; Maps the given function on the Datashell and returns a new Datashell
@@ -87,7 +87,10 @@
      #'(ds-filter-func '(lambda (arg1) body ...) ds)]
     [(_ f:id ds)
      ;; pass to the runtime function
-     #'(ds-filter-saved-func f ds)]))
+     #'(ds-filter-saved-func f ds)]
+    [(this e ...)
+     #:do [(raise-syntax-error 'ds-filter "incorrect number of arguments" #'this)]
+     #'(error 'ds-filter "incorrect number of arguments")]))
 
 ;; ds-reduce: AFunc Any Datashell -> Any
 ;; Reduces the Datashell to a non Datashell type
@@ -123,37 +126,55 @@
      #:do [(raise-syntax-error 'define-rsl-func "incorrect use of define-rsl-func" stx)]
      #'(error 'define-rsl-func)]))
 
-(define-syntax (mk-datashell stx)
+;; (mk-datashell-macro Datashell)
+(define-syntax (mk-datashell-macro stx)
   (syntax-parse stx
+    [:id
+     #'mk-datashell]
     [(_ path:string)
-     #'(mk-datashell-func (csv->list (open-input-file path)))]
+     #'(mk-datashell (csv->list (open-input-file path)))]
     [(_ data)
-     #'(mk-datashell-func data)]
+     #'(mk-datashell data)]
     [(this e ...)
-     #:do [(raise-syntax-error 'mk-datashell "incorrect arguments" #'this)]
-     #'(error 'mk-datashell "incorrect arguments")]))
+     #:do [(raise-syntax-error 'mk-datashell "incorrect number of arguments" #'this)]
+     #'(error 'mk-datashell "incorrect number of arguments")]))
+
+;; (ds-collect-macro Datashell)
+(define-syntax (ds-collect-macro stx)
+  (syntax-parse stx
+    [:id
+     #'ds-collect]
+    [(_ datashell)
+     #'(ds-collect datashell)]
+    [(this e ...)
+     #:do [(raise-syntax-error 'ds-collect "incorrect number of arguments" #'this)]
+     #'(error 'ds-count "incorrect number of arguments")]))
+
+;; (ds-count-macro Datashell)
+(define-syntax (ds-count-macro stx)
+  (syntax-parse stx
+    [:id
+     #'ds-count]
+    [(_ datashell)
+     #'(ds-count datashell)]
+    [(this e ...)
+     #:do [(raise-syntax-error 'ds-count "incorrect number of arguments" #'this)]
+     #'(error 'ds-count "incorrect number of arguments")]))
 ;; -----------------------------------------------------------------------------
 ;; RUNTIME LIB
 
 ;; [Listof Any] -> Datashell
 ;; Create a Datashell from a given list
-(define (mk-datashell-func data-list)
+(define (mk-datashell data-list)
   (if (list? data-list)
       (Datashell data-list (tfunc '(lambda (any) any)))
       (error 'mk-datashell "First arg must be a list")))
 
-(define-syntax unwrap
-  (syntax-parser
-    #:datum-literals (lambda)
-    ['(lambda (x) t) #'(lambda (x) t)]))
-
-;; ds-collect: Datashell -> [Listof Any]
-;; Collects the data in a Datashell and returns it.
-(define (ds-collect ds)
-  (ds-reduce-func cons '() ds))
-
-(define (to-pred-func datum1)
-  (match datum1
+;; to-pred-func: Symbol -> Symbol
+;; Transforms a datum representing a mapping function into one representing a filter
+;; predicate
+(define (to-pred-func symb)
+  (match symb
     [`(lambda (,f1-arg) ,f1-body ...)
      `(lambda (,f1-arg) (if ((lambda (,f1-arg) ,@f1-body) ,f1-arg) ,f1-arg (rsl-void)))]))
 
@@ -177,23 +198,25 @@
     ;; first function is invalid
     [other (throw-error)]))
 
-;; ds-map-func: TFunc Datashell -> Datashell
+;; ds-map-func: Symbol Datashell -> Datashell
 ;; Queues up a mapping to later be applied to a Datashell's data.
 (define (ds-map-func tfunc-datum ds)
   (Datashell (Datashell-dataset ds) (rsl-compose-to-tfunc tfunc-datum (tfunc-form (Datashell-op ds)))))
 
-;; ds-map-func: TFunc Datashell -> Datashell
-;; Queues up a mapping to later be applied to a Datashell's data.
+;; ds-filter-func: Symbol Datashell -> Datashell
+;; Queues up a filter to later be applied to a Datashell's data.
 (define (ds-filter-func tfunc-datum ds)
   (Datashell (Datashell-dataset ds) (rsl-compose-to-tfunc (to-pred-func tfunc-datum) (tfunc-form (Datashell-op ds)))))
 
-;; check that the variable stores a tfunc and pass it along
+;; ds-map-saved-func: TFunc Datashell -> Datashell
+;; Retrieves the datum from a TFunc and maps it
 (define (ds-map-saved-func func ds)
   (if (tfunc? func)
       (ds-map-func (tfunc-form func) ds)
       (error 'ds-map "argument is not a valid rsl procedure")))
 
-;; check that the variable stores a tfunc and pass it along
+;; ds-filter-saved-func: TFunc Datashell -> Datashell
+;; Retrieves the datum from a TFunc and filters with it
 (define (ds-filter-saved-func func ds)
   (if (tfunc? func)
       (ds-filter-func (tfunc-form func) ds)
@@ -218,21 +241,22 @@
                         [else (afunc transformed acc)])))
               (foldr tfunc-filter acc (Datashell-dataset ds))]))
 
+;; ds-couunt: Datashell -> Number
+;; Counts the number of items in a datashell after transformations and filters
 (define (ds-count ds)
   (ds-reduce-func (lambda (curr acc) (+ 1 acc)) 0 ds))
 
-;; apply-tfunc: TFunc -> Error
-;; TFuncs should not be applied, but we want them to be funcs so they appear
-;; as funcs in the interactions window
-(define (apply-tfunc tfunc)
-  (error 'RSL "Functions declared with define-rsl must be applied by ds-map"))
+;; ds-collect: Datashell -> [Listof Any]
+;; Collects the data in a Datashell and returns it.
+(define (ds-collect ds)
+  (ds-reduce-func cons '() ds))
 
-;; (tfunc STX)
-;; TFunc will be created from define-rsl
-(struct tfunc (form) #:property prop:procedure apply-tfunc)
+;; (tfunc Symbol)
+;; TFunc holds the datum for an rsl-func
+(struct tfunc (form) #:property prop:procedure (thunk (error 'RSL "Functions declared with define-rsl must be applied by ds-map")))
 
 ;; (Datashell [Listof Any] TFunc)
-(struct Datashell (dataset op) #:transparent)
+(struct Datashell (dataset op))
 
 ;; for use in filtering
 (struct rsl-void ())
