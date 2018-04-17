@@ -46,7 +46,8 @@ This section will expain each available feature in RSL.
    Transformation]
 
   [Transformation
-   (ds-map TFunc DataShell)]
+   (ds-map TFunc DataShell)
+   (ds-filter TFunc Datashell)]
 
   [Reduction
    (ds-reduce AFunc Expr Datashell)
@@ -127,7 +128,29 @@ Example:
  (define-rsl-func (sub-8 z)
    (- z 8))
 
- (define b (ds-map sub-8 (mk-datashell '(50 20 49))))]
+ (define b (ds-map sub-8 (mk-datashell '(50 20 49))))
+ b
+ >'(42 12 41)]
+
+@defform[(ds-filter tfunc datashell)
+         #:contracts([tfunc tfunc?]
+                     [datashell Datashell?])]{
+ Creates a new Datashell using the given Datashell filtered with the given predicate function.
+ The given procedure is not evaluated until a reduction is executed.
+}
+
+Example:
+@racketblock[
+ (define-rsl-func (length-greater-than-3? l)
+   (> (length l) 3))
+
+ (define filtered (ds-filter length-greater-than-3?
+                             (mk-datashell '((list 1 2 5 6)
+                                             (list 1 2)
+                                             (list 3 6 2 9 0)))))
+ filtered
+ >'((list 1 2 5 6) (list 3 6 2 9 0))]
+
 @section{Reductions/Actions}
 
 Reductions are @bold{eagerly} evaluated.
@@ -164,7 +187,8 @@ Example:
 
 Example:
 @racketblock[
- (define a2 (ds-filter mult-10 (ds-map less-than-5? (mk-datashell '(1 2 3 4 5 6 7 8 9 10)))))
+ (define a2 (ds-filter mult-10 (ds-map less-than-5?
+                                       (mk-datashell '(1 2 3 4 5 6 7 8 9 10)))))
  (define abcd2 (ds-filter multiple-of-20? a2))
 
  (ds-collect abcd2)
@@ -180,7 +204,8 @@ Example:
 
 Example:
 @racketblock[
- (define a2 (ds-map mult-10 (ds-filter less-than-5? (mk-datashell '(1 2 3 4 5 6 7 8 9 10)))))
+ (define a2 (ds-map mult-10 (ds-filter less-than-5?
+                                       (mk-datashell '(1 2 3 4 5 6 7 8 9 10)))))
  (define abcd2 (ds-filter multiple-of-20? a2))
 
  (ds-count abcd2)
@@ -197,7 +222,8 @@ Example:
 
 Example:
 @racketblock[
- (define a2 (ds-filter even-num? (ds-map mult-5 (mk-datashell '(1 2 3 4 5 6 7 8 9 10)))))
+ (define a2 (ds-filter even-num? (ds-map mult-5
+                                         (mk-datashell '(1 2 3 4 5 6 7 8 9 10)))))
  (ds-take-n abcd2 3)
  > '(10 20 30)
 ]
