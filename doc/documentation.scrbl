@@ -155,7 +155,7 @@ Example:
 
 Reductions are @bold{eagerly} evaluated.
 
-A reduction immediatly triggers the evaluation of the datashell's queued transformation(s), and it reduces the transformed dataset into a value to return
+A Reduction immediatly triggers the evaluation of the datashell's queued transformation(s), and it reduces the transformed dataset into a value to return
 to the user.
 
 @defform[(ds-reduce afunc base datashell)
@@ -163,7 +163,7 @@ to the user.
                      [base Any?]
                      [datashell Datashell?])]{
  Applies the datashell's queued transformations then immediatly evaluates and returns the result of the reduction function on the datashell.
- 
+
  The return type of @bold{ds-reduce} can be any except a Datashell.
  The return type of ds-reduce is the same as the type of @bold{base}, and the return type of @bold{afunc}.
 }
@@ -181,7 +181,7 @@ Example:
 @defform[(ds-collect datashell)
          #:contracts([datashell Datashell?])]{
  Returns a list from the given datashell by applying all the datashell's queued functions and immediatly collecting the results.
- 
+
  @bold{ds-collect} returns a [Listof Any].
 }
 
@@ -198,7 +198,7 @@ Example:
 @defform[(ds-count datashell)
          #:contracts([datashell Datashell?])]{
  Counts the number of items in the list after all transformations and filters have been applied.
- 
+
  @bold{ds-collect} returns a Number.
 }
 
@@ -216,7 +216,7 @@ Example:
          #:contracts([datashell Datashell?]
                      [num Integer?])]{
  Gets the first n items in the list after all transformations and filters have been applied.
- 
+
  @bold{ds-collect} returns a [Listof Any] of at most n items.
 }
 
