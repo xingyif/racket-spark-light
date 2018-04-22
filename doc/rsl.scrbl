@@ -22,4 +22,3 @@ to the Racket language as well as to an interface that allows users to import da
 into Datashells.
 
 @include-section["getting-started.scrbl"]
-@include-section["documentation.scrbl"]
