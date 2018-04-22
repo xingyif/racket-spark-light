@@ -20,5 +20,3 @@ This operation is a combination of the previously stored transformations that on
 once. The central concepts of RSL are inspired by Apache Spark. Furthermore, RSL provides full access
 to the Racket language as well as to an interface that allows users to import data from CSV files
 into Datashells.
-
-@include-section["getting-started.scrbl"]
