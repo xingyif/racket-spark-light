@@ -5,6 +5,10 @@
 
 This section will expain each available feature in RSL.
 
+@; ------------------------------------------------------------------------
+@;table-of-contents[]
+@include-section["getting-started.scrbl"]
+@include-section["rsl.scrbl"]
 
 @section{Grammar}
 
